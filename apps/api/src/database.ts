@@ -90,6 +90,17 @@ CREATE TABLE IF NOT EXISTS provider_configs (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS agent_llm_configs (
+  id TEXT PRIMARY KEY NOT NULL,
+  api_key TEXT,
+  base_url TEXT NOT NULL DEFAULT '',
+  model TEXT NOT NULL DEFAULT '',
+  timeout_ms INTEGER NOT NULL DEFAULT 60000,
+  supports_vision INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS codex_oauth_tokens (
   id TEXT PRIMARY KEY NOT NULL,
   access_token TEXT,
@@ -169,9 +180,15 @@ ensureColumn("provider_configs", "local_api_key", "local_api_key TEXT");
 ensureColumn("provider_configs", "local_base_url", "local_base_url TEXT");
 ensureColumn("provider_configs", "local_model", "local_model TEXT");
 ensureColumn("provider_configs", "local_timeout_ms", "local_timeout_ms INTEGER");
+ensureColumn("agent_llm_configs", "api_key", "api_key TEXT");
+ensureColumn("agent_llm_configs", "base_url", "base_url TEXT NOT NULL DEFAULT ''");
+ensureColumn("agent_llm_configs", "model", "model TEXT NOT NULL DEFAULT ''");
+ensureColumn("agent_llm_configs", "timeout_ms", "timeout_ms INTEGER NOT NULL DEFAULT 60000");
+ensureColumn("agent_llm_configs", "supports_vision", "supports_vision INTEGER NOT NULL DEFAULT 0");
 
 backfillGenerationReferenceAssets();
 ensureProviderConfigRow();
+ensureAgentLlmConfigRow();
 
 export const db = drizzle(sqlite, { schema });
 
@@ -215,4 +232,15 @@ function ensureProviderConfigRow(): void {
        VALUES (?, ?, ?, ?)`
     )
     .run("active", JSON.stringify(["env-openai", "local-openai", "codex"]), now, now);
+}
+
+function ensureAgentLlmConfigRow(): void {
+  const now = new Date().toISOString();
+  sqlite
+    .prepare(
+      `INSERT OR IGNORE INTO agent_llm_configs
+        (id, api_key, base_url, model, timeout_ms, supports_vision, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run("active", null, "", "", 60000, 0, now, now);
 }

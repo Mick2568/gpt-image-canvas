@@ -1,10 +1,13 @@
 import { relative } from "node:path";
 import { pathToFileURL } from "node:url";
-import { serve } from "@hono/node-server";
+import { serve, upgradeWebSocket } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import type { Context } from "hono";
+import { WebSocketServer } from "ws";
 import { parsePreviewWidth, readStoredAssetPreview } from "./asset-preview.js";
+import { getAgentLlmConfig, saveAgentLlmConfig } from "./agent-config.js";
+import { closeAllAgentSessions, createAgentWebSocketEvents } from "./agent-websocket.js";
 import {
   getAuthStatus,
   logoutCodex,
@@ -28,6 +31,7 @@ import {
   type OutputFormat,
   type ProviderSourceId,
   type ReferenceImageInput,
+  type SaveAgentLlmConfigRequest,
   type SaveLocalOpenAIProviderConfig,
   type SaveProviderConfigRequest,
   type SaveStorageConfigRequest,
@@ -62,6 +66,7 @@ interface ProjectPayload {
 }
 
 export const app = new Hono();
+export const agentWebSocketServer = new WebSocketServer({ noServer: true });
 
 app.onError((error, c) => {
   console.error(error);
@@ -100,6 +105,26 @@ app.get("/api/config", (c) => {
 app.get("/api/auth/status", (c) => c.json(getAuthStatus()));
 
 app.get("/api/provider-config", (c) => c.json(getProviderConfig()));
+
+app.get("/api/agent-config", (c) => c.json(getAgentLlmConfig()));
+
+app.put("/api/agent-config", async (c) => {
+  const payload = await readJson(c.req.raw);
+  if (!payload.ok) {
+    return c.json(payload.error, 400);
+  }
+
+  const parsed = parseAgentLlmConfigPayload(payload.value);
+  if (!parsed.ok) {
+    return c.json(parsed.error, 400);
+  }
+
+  try {
+    return c.json(saveAgentLlmConfig(parsed.value));
+  } catch (error) {
+    return c.json(errorResponse("agent_config_error", errorToMessage(error)), 400);
+  }
+});
 
 app.put("/api/provider-config", async (c) => {
   const payload = await readJson(c.req.raw);
@@ -329,6 +354,15 @@ app.post("/api/images/edit", async (c) => {
 });
 
 const webDistRoot = relative(process.cwd(), runtimePaths.webDistDir) || ".";
+
+app.get(
+  "/api/agent/ws",
+  upgradeWebSocket(() => createAgentWebSocketEvents(), {
+    onError(error) {
+      console.error("Agent WebSocket error.", error);
+    }
+  })
+);
 
 app.get("/api/*", (c) => c.json(errorResponse("not_found", "Not found."), 404));
 
@@ -630,6 +664,62 @@ function parseStorageConfigPayload(input: unknown): ParseResult<SaveStorageConfi
         region: stringValue(input.cos.region) ?? "",
         keyPrefix: stringValue(input.cos.keyPrefix) ?? ""
       }
+    }
+  };
+}
+
+function parseAgentLlmConfigPayload(input: unknown): ParseResult<SaveAgentLlmConfigRequest> {
+  if (!isRecord(input)) {
+    return {
+      ok: false,
+      error: errorResponse("invalid_agent_config", "Agent LLM config payload must be a JSON object.")
+    };
+  }
+
+  if (Object.hasOwn(input, "apiKey") && typeof input.apiKey !== "string") {
+    return {
+      ok: false,
+      error: errorResponse("invalid_agent_config", "Agent LLM API key must be a string.")
+    };
+  }
+
+  if (typeof input.baseUrl !== "string") {
+    return {
+      ok: false,
+      error: errorResponse("invalid_agent_config", "Agent LLM base URL must be a string.")
+    };
+  }
+
+  if (typeof input.model !== "string") {
+    return {
+      ok: false,
+      error: errorResponse("invalid_agent_config", "Agent LLM model must be a string.")
+    };
+  }
+
+  if (typeof input.timeoutMs !== "number" || !Number.isInteger(input.timeoutMs) || input.timeoutMs <= 0) {
+    return {
+      ok: false,
+      error: errorResponse("invalid_agent_config", "Agent LLM timeout must be a positive integer.")
+    };
+  }
+
+  if (typeof input.supportsVision !== "boolean") {
+    return {
+      ok: false,
+      error: errorResponse("invalid_agent_config", "Agent LLM supportsVision must be a boolean.")
+    };
+  }
+
+  return {
+    ok: true,
+    value: {
+      apiKey: stringValue(input.apiKey),
+      preserveApiKey: input.preserveApiKey === true,
+      baseUrl: input.baseUrl,
+      model: input.model,
+      timeoutMs: input.timeoutMs,
+      supportsVision: input.supportsVision
     }
   };
 }
@@ -1101,6 +1191,7 @@ if (isMainModule()) {
   const server = serve(
     {
       fetch: app.fetch,
+      websocket: { server: agentWebSocketServer },
       hostname: serverConfig.host,
       port: serverConfig.port
     },
@@ -1110,6 +1201,8 @@ if (isMainModule()) {
   );
 
   const shutdown = (): void => {
+    closeAllAgentSessions("server_shutdown");
+    agentWebSocketServer.close();
     closeDatabase();
     server.close();
   };

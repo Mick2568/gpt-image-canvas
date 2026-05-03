@@ -52,6 +52,17 @@ export const providerConfigs = sqliteTable("provider_configs", {
   updatedAt: text("updated_at").notNull()
 });
 
+export const agentLlmConfigs = sqliteTable("agent_llm_configs", {
+  id: text("id").primaryKey(),
+  apiKey: text("api_key"),
+  baseUrl: text("base_url").notNull(),
+  model: text("model").notNull(),
+  timeoutMs: integer("timeout_ms").notNull(),
+  supportsVision: integer("supports_vision").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull()
+});
+
 export const codexOAuthTokens = sqliteTable("codex_oauth_tokens", {
   id: text("id").primaryKey(),
   accessToken: text("access_token"),

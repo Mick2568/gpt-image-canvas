@@ -398,6 +398,188 @@ export interface SaveProviderConfigRequest {
   localOpenAI?: SaveLocalOpenAIProviderConfig;
 }
 
+export interface AgentLlmConfigView {
+  configured: boolean;
+  apiKey: MaskedSecret;
+  baseUrl: string;
+  model: string;
+  timeoutMs: number;
+  supportsVision: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SaveAgentLlmConfigRequest {
+  apiKey?: string;
+  preserveApiKey?: boolean;
+  baseUrl: string;
+  model: string;
+  timeoutMs: number;
+  supportsVision: boolean;
+}
+
+export type AgentClientMessageType =
+  | "user_message"
+  | "revise_plan"
+  | "execute_plan"
+  | "cancel_run"
+  | "retry_failed"
+  | "ping";
+
+export interface AgentBaseClientMessage {
+  type: AgentClientMessageType;
+  requestId?: string;
+  runId?: string;
+}
+
+export interface AgentPingClientMessage extends AgentBaseClientMessage {
+  type: "ping";
+}
+
+export interface AgentCancelRunClientMessage extends AgentBaseClientMessage {
+  type: "cancel_run";
+}
+
+export interface AgentUserMessageClientMessage extends AgentBaseClientMessage {
+  type: "user_message";
+  text: string;
+  selectedReferenceIds?: string[];
+  defaults?: Record<string, unknown>;
+}
+
+export interface AgentRevisePlanClientMessage extends AgentBaseClientMessage {
+  type: "revise_plan";
+  planId: string;
+  instructions: string;
+}
+
+export interface AgentExecutePlanClientMessage extends AgentBaseClientMessage {
+  type: "execute_plan";
+  planId: string;
+}
+
+export interface AgentRetryFailedClientMessage extends AgentBaseClientMessage {
+  type: "retry_failed";
+  planId: string;
+}
+
+export type AgentClientMessage =
+  | AgentPingClientMessage
+  | AgentCancelRunClientMessage
+  | AgentUserMessageClientMessage
+  | AgentRevisePlanClientMessage
+  | AgentExecutePlanClientMessage
+  | AgentRetryFailedClientMessage;
+
+export type AgentServerEventType =
+  | "connected"
+  | "assistant_delta"
+  | "plan_created"
+  | "plan_updated"
+  | "job_started"
+  | "job_completed"
+  | "job_failed"
+  | "job_blocked"
+  | "asset_preview"
+  | "run_cancelled"
+  | "run_done"
+  | "error"
+  | "pong";
+
+export interface AgentBaseServerEvent {
+  type: AgentServerEventType;
+  requestId?: string;
+  runId?: string;
+  timestamp: string;
+}
+
+export interface AgentConnectedEvent extends AgentBaseServerEvent {
+  type: "connected";
+  connectionId: string;
+}
+
+export interface AgentPongEvent extends AgentBaseServerEvent {
+  type: "pong";
+}
+
+export interface AgentErrorEvent extends AgentBaseServerEvent {
+  type: "error";
+  code: string;
+  message: string;
+  recoverable: boolean;
+}
+
+export interface AgentAssistantDeltaEvent extends AgentBaseServerEvent {
+  type: "assistant_delta";
+  delta: string;
+}
+
+export interface AgentPlanCreatedEvent extends AgentBaseServerEvent {
+  type: "plan_created";
+  plan: unknown;
+}
+
+export interface AgentPlanUpdatedEvent extends AgentBaseServerEvent {
+  type: "plan_updated";
+  plan: unknown;
+}
+
+export interface AgentJobStartedEvent extends AgentBaseServerEvent {
+  type: "job_started";
+  jobId: string;
+}
+
+export interface AgentJobCompletedEvent extends AgentBaseServerEvent {
+  type: "job_completed";
+  jobId: string;
+  outputs?: unknown[];
+}
+
+export interface AgentJobFailedEvent extends AgentBaseServerEvent {
+  type: "job_failed";
+  jobId: string;
+  error: string;
+}
+
+export interface AgentJobBlockedEvent extends AgentBaseServerEvent {
+  type: "job_blocked";
+  jobId: string;
+  reason: string;
+}
+
+export interface AgentAssetPreviewEvent extends AgentBaseServerEvent {
+  type: "asset_preview";
+  jobId: string;
+  assetId: string;
+  url: string;
+}
+
+export interface AgentRunCancelledEvent extends AgentBaseServerEvent {
+  type: "run_cancelled";
+  reason: string;
+  alreadyCancelled: boolean;
+}
+
+export interface AgentRunDoneEvent extends AgentBaseServerEvent {
+  type: "run_done";
+  status: "succeeded" | "failed" | "cancelled";
+}
+
+export type AgentServerEvent =
+  | AgentConnectedEvent
+  | AgentPongEvent
+  | AgentErrorEvent
+  | AgentAssistantDeltaEvent
+  | AgentPlanCreatedEvent
+  | AgentPlanUpdatedEvent
+  | AgentJobStartedEvent
+  | AgentJobCompletedEvent
+  | AgentJobFailedEvent
+  | AgentJobBlockedEvent
+  | AgentAssetPreviewEvent
+  | AgentRunCancelledEvent
+  | AgentRunDoneEvent;
+
 export interface AuthStatusResponse {
   provider: RuntimeImageProvider;
   openaiConfigured: boolean;
