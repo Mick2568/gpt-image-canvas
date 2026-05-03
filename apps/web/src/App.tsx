@@ -49,6 +49,20 @@ import {
   GenerationPlaceholderShapeUtil,
   type GenerationPlaceholderShape
 } from "./GenerationPlaceholderShape";
+import {
+  AGENT_PLAN_NODE_ACTION_EVENT,
+  AGENT_PLAN_NODE_HEIGHT,
+  AGENT_PLAN_NODE_TYPE,
+  AGENT_PLAN_NODE_WIDTH,
+  AgentPlanNodeShapeUtil,
+  createAgentPlanNodeProps,
+  isAgentPlanNodeShape,
+  isGenerationPlan,
+  isUnexecutedPlanStatus,
+  normalizeAgentPlanNodePropsForSnapshot,
+  type AgentPlanNodeActionDetail,
+  type AgentPlanNodeShape
+} from "./AgentPlanNodeShape";
 import { HomePage } from "./HomePage";
 import { ProviderConfigDialog } from "./ProviderConfigDialog";
 import {
@@ -112,7 +126,7 @@ const RESOLUTION_BADGE_BASE_OFFSET = 7;
 const RESOLUTION_BADGE_MIN_SCALE = 0.52;
 const RESOLUTION_BADGE_SMALL_IMAGE_SIDE = 32;
 const RESOLUTION_BADGE_FULL_SIZE_IMAGE_SIDE = 220;
-const shapeUtils = [GenerationPlaceholderShapeUtil];
+const shapeUtils = [GenerationPlaceholderShapeUtil, AgentPlanNodeShapeUtil];
 const tldrawOptions = {
   debouncedZoomThreshold: 80
 } satisfies Partial<TldrawOptions>;
@@ -465,23 +479,51 @@ function isLoadingGenerationPlaceholderRecord(value: unknown): boolean {
   );
 }
 
+function isAgentPlanNodeSnapshotRecord(value: unknown): value is Record<string, unknown> {
+  return isRecord(value) && value.typeName === "shape" && value.type === AGENT_PLAN_NODE_TYPE;
+}
+
+function normalizeAgentPlanNodeSnapshotRecord(record: Record<string, unknown>): Record<string, unknown> {
+  const nextProps = normalizeAgentPlanNodePropsForSnapshot(record.props);
+  const nextRecord: Record<string, unknown> = {
+    ...record,
+    props: nextProps
+  };
+
+  if (typeof nextRecord.x !== "number" || !Number.isFinite(nextRecord.x)) {
+    nextRecord.x = 0;
+  }
+  if (typeof nextRecord.y !== "number" || !Number.isFinite(nextRecord.y)) {
+    nextRecord.y = 0;
+  }
+
+  return nextRecord;
+}
+
 function filterLoadingPlaceholdersFromStoreSnapshot<TSnapshot>(snapshot: TSnapshot): TSnapshot {
   if (!isRecord(snapshot) || !isRecord(snapshot.store)) {
     return snapshot;
   }
 
-  let removed = false;
+  let changed = false;
   const nextStore: Record<string, unknown> = {};
   for (const [id, record] of Object.entries(snapshot.store)) {
     if (isLoadingGenerationPlaceholderRecord(record)) {
-      removed = true;
+      changed = true;
+      continue;
+    }
+
+    if (isAgentPlanNodeSnapshotRecord(record)) {
+      const nextRecord = normalizeAgentPlanNodeSnapshotRecord(record);
+      nextStore[id] = nextRecord;
+      changed ||= nextRecord !== record;
       continue;
     }
 
     nextStore[id] = record;
   }
 
-  return removed ? ({ ...snapshot, store: nextStore } as TSnapshot) : snapshot;
+  return changed ? ({ ...snapshot, store: nextStore } as TSnapshot) : snapshot;
 }
 
 function filterLoadingPlaceholdersFromSnapshot<TSnapshot>(snapshot: TSnapshot): TSnapshot {
@@ -701,6 +743,130 @@ function createGenerationPlaceholders(
     requestId,
     placements
   };
+}
+
+function selectedShapesPageBounds(editor: Editor): { x: number; y: number; w: number; h: number } | undefined {
+  const bounds = editor.getSelectedShapes().flatMap((shape) => {
+    const pageBounds = editor.getShapePageBounds(shape);
+    return pageBounds ? [pageBounds] : [];
+  });
+
+  if (bounds.length === 0) {
+    return undefined;
+  }
+
+  const minX = Math.min(...bounds.map((box) => box.x));
+  const minY = Math.min(...bounds.map((box) => box.y));
+  const maxX = Math.max(...bounds.map((box) => box.x + box.w));
+  const maxY = Math.max(...bounds.map((box) => box.y + box.h));
+
+  return {
+    x: minX,
+    y: minY,
+    w: maxX - minX,
+    h: maxY - minY
+  };
+}
+
+function agentPlanNodePlacement(editor: Editor, nearShape?: AgentPlanNodeShape): { x: number; y: number } {
+  const gap = 56;
+  if (nearShape) {
+    const bounds = editor.getShapePageBounds(nearShape);
+    if (bounds) {
+      return {
+        x: bounds.x + bounds.w + gap,
+        y: bounds.y
+      };
+    }
+  }
+
+  const selectedBounds = selectedShapesPageBounds(editor);
+  if (selectedBounds) {
+    return {
+      x: selectedBounds.x + selectedBounds.w + gap,
+      y: selectedBounds.y
+    };
+  }
+
+  const viewport = editor.getViewportPageBounds();
+  return {
+    x: viewport.center.x - AGENT_PLAN_NODE_WIDTH / 2,
+    y: viewport.center.y - AGENT_PLAN_NODE_HEIGHT / 2
+  };
+}
+
+function findAgentPlanNodes(editor: Editor, planId: string): AgentPlanNodeShape[] {
+  return editor.getCurrentPageShapes().flatMap((shape) => {
+    if (!isAgentPlanNodeShape(shape)) {
+      return [];
+    }
+
+    const props = normalizeAgentPlanNodePropsForSnapshot(shape.props);
+    return isGenerationPlan(props.plan) && props.plan.id === planId ? [shape] : [];
+  });
+}
+
+function createAgentPlanNode(editor: Editor, plan: GenerationPlan, lastRunId = "", nearShape?: AgentPlanNodeShape): AgentPlanNodeShape {
+  const placement = agentPlanNodePlacement(editor, nearShape);
+  const id = createTldrawShapeId();
+  editor.createShapes<AgentPlanNodeShape>([
+    {
+      id,
+      type: AGENT_PLAN_NODE_TYPE,
+      x: placement.x,
+      y: placement.y,
+      props: createAgentPlanNodeProps(plan, lastRunId)
+    }
+  ]);
+  editor.bringToFront([id]);
+  editor.select(id);
+  return editor.getShape(id) as AgentPlanNodeShape;
+}
+
+function updateAgentPlanNode(editor: Editor, shape: AgentPlanNodeShape, plan: GenerationPlan, lastRunId = ""): void {
+  const props = normalizeAgentPlanNodePropsForSnapshot(shape.props);
+  const selectedJobId = plan.jobs.some((job) => job.id === props.selectedJobId) ? props.selectedJobId : plan.jobs[0]?.id ?? "";
+
+  editor.updateShapes<AgentPlanNodeShape>([
+    {
+      id: shape.id,
+      type: AGENT_PLAN_NODE_TYPE,
+      props: {
+        plan,
+        w: props.w,
+        h: props.h,
+        selectedJobId,
+        lastRunId: lastRunId || props.lastRunId
+      }
+    }
+  ]);
+  editor.bringToFront([shape.id]);
+  editor.select(shape.id);
+}
+
+function upsertAgentPlanNode(input: {
+  editor: Editor;
+  eventType: "plan_created" | "plan_updated";
+  lastRunId?: string;
+  plan: GenerationPlan;
+}): TLShapeId | undefined {
+  if (input.eventType === "plan_created") {
+    return createAgentPlanNode(input.editor, input.plan, input.lastRunId).id;
+  }
+
+  const existingNodes = findAgentPlanNodes(input.editor, input.plan.id);
+  const unexecutedNode = [...existingNodes].reverse().find((shape) => {
+    const props = normalizeAgentPlanNodePropsForSnapshot(shape.props);
+    return isGenerationPlan(props.plan) && isUnexecutedPlanStatus(props.plan.status);
+  });
+
+  if (unexecutedNode) {
+    updateAgentPlanNode(input.editor, unexecutedNode, input.plan, input.lastRunId);
+    return unexecutedNode.id;
+  }
+
+  const latestNode = existingNodes.at(-1);
+  return createAgentPlanNode(input.editor, input.plan, input.lastRunId, latestNode).id;
 }
 
 function isGenerationPlaceholderShape(shape: unknown): shape is GenerationPlaceholderShape {
@@ -3284,12 +3450,39 @@ export function App() {
     });
   }
 
+  function syncAgentPlanNodeFromEvent(event: Extract<AgentServerEvent, { type: "plan_created" | "plan_updated" }>): void {
+    const editor = editorRef.current;
+    if (!editor) {
+      addAgentMessage({
+        role: "error",
+        content: t("generationCanvasNotReady")
+      });
+      return;
+    }
+
+    if (!isGenerationPlan(event.plan)) {
+      addAgentMessage({
+        role: "error",
+        content: t("agentInvalidEvent")
+      });
+      return;
+    }
+
+    upsertAgentPlanNode({
+      editor,
+      eventType: event.type,
+      lastRunId: event.runId,
+      plan: event.plan
+    });
+  }
+
   function handleAgentServerEvent(event: AgentServerEvent): void {
     switch (event.type) {
       case "assistant_delta":
         appendAgentAssistantDelta(event.delta);
         return;
       case "plan_created":
+        syncAgentPlanNodeFromEvent(event);
         addAgentMessage({
           role: "plan",
           content: t("agentPlanCreated", { title: event.plan.title }),
@@ -3297,6 +3490,7 @@ export function App() {
         });
         return;
       case "plan_updated":
+        syncAgentPlanNodeFromEvent(event);
         addAgentMessage({
           role: "plan",
           content: t("agentPlanUpdated", { title: event.plan.title }),
@@ -3546,6 +3740,94 @@ export function App() {
       })
     );
   }
+
+  async function sendAgentPlanNodeAction(detail: AgentPlanNodeActionDetail): Promise<void> {
+    if (detail.action === "cancel") {
+      try {
+        const runId = detail.lastRunId || activeAgentRunIdRef.current || undefined;
+        const socket = agentSocketRef.current?.readyState === WebSocket.OPEN ? agentSocketRef.current : await ensureAgentSocket();
+        socket.send(
+          JSON.stringify({
+            type: "cancel_run",
+            requestId: `agent-plan-cancel-${crypto.randomUUID()}`,
+            runId
+          })
+        );
+      } catch (error) {
+        addAgentMessage({
+          role: "error",
+          content: error instanceof Error ? error.message : t("agentSocketFailed")
+        });
+      }
+      return;
+    }
+
+    if (!isAgentConfigured) {
+      addAgentMessage({
+        role: "error",
+        content: t("agentConfigMissingCopy")
+      });
+      return;
+    }
+
+    const runId = `agent-plan-run-${crypto.randomUUID()}`;
+    activeAgentRunIdRef.current = runId;
+    setAgentRunStatus("connecting");
+
+    try {
+      const socket = await ensureAgentSocket();
+      const editor = editorRef.current;
+      const shape = editor?.getShape(detail.shapeId as TLShapeId);
+      if (editor && isAgentPlanNodeShape(shape)) {
+        const props = normalizeAgentPlanNodePropsForSnapshot(shape.props);
+        editor.updateShapes<AgentPlanNodeShape>([
+          {
+            id: shape.id,
+            type: AGENT_PLAN_NODE_TYPE,
+            props: {
+              lastRunId: runId,
+              selectedJobId: props.selectedJobId
+            }
+          }
+        ]);
+      }
+
+      socket.send(
+        JSON.stringify({
+          type: detail.action === "execute" ? "execute_plan" : "retry_failed",
+          requestId: `agent-plan-action-${crypto.randomUUID()}`,
+          runId,
+          planId: detail.planId
+        })
+      );
+      setAgentRunStatus("running");
+    } catch (error) {
+      if (activeAgentRunIdRef.current === runId) {
+        activeAgentRunIdRef.current = null;
+      }
+      setAgentRunStatus("idle");
+      addAgentMessage({
+        role: "error",
+        content: error instanceof Error ? error.message : t("agentSendFailed")
+      });
+    }
+  }
+
+  useEffect(() => {
+    const handleAgentPlanNodeAction = (event: Event): void => {
+      const detail = (event as CustomEvent<AgentPlanNodeActionDetail>).detail;
+      if (!detail || typeof detail.planId !== "string" || typeof detail.shapeId !== "string") {
+        return;
+      }
+
+      void sendAgentPlanNodeAction(detail);
+    };
+
+    window.addEventListener(AGENT_PLAN_NODE_ACTION_EVENT, handleAgentPlanNodeAction);
+    return () => {
+      window.removeEventListener(AGENT_PLAN_NODE_ACTION_EVENT, handleAgentPlanNodeAction);
+    };
+  });
 
   function locateAgentPreview(preview: AgentChatAssetPreview): void {
     const editor = editorRef.current;

@@ -276,7 +276,7 @@
     {
       "id": "AG-004",
       "title": "Add canvas Agent plan node shape",
-      "status": "open",
+      "status": "done",
       "dependsOn": [
         "AG-002",
         "AG-003"
@@ -295,7 +295,10 @@
         "Negative case: a malformed plan node payload in an old or corrupted snapshot must not crash app load.",
         "Browser verification: create a plan from Agent chat, refresh to confirm node restoration, revise before execution, revise after execution to create a new node, and verify node controls are visible on desktop and mobile.",
         "Verification: pnpm typecheck and pnpm build pass."
-      ]
+      ],
+      "startedAt": "2026-05-03T14:27:38.905586+00:00",
+      "completedAt": "2026-05-03T14:57:02.1159076+00:00",
+      "updatedAt": "2026-05-03T14:57:02.1159076+00:00"
     },
     {
       "id": "AG-005",
