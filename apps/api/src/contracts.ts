@@ -62,6 +62,7 @@ export type {
   RuntimeImageProvider,
   AgentAssetPreviewEvent,
   AgentAssistantDeltaEvent,
+  AgentAssistantThinkingDeltaEvent,
   AgentBaseClientMessage,
   AgentBaseServerEvent,
   AgentCancelRunClientMessage,

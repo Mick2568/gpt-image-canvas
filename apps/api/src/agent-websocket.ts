@@ -235,6 +235,32 @@ async function handleAgentPlanMessage(
       defaults: message.defaults,
       selectedReferences: message.selectedReferences,
       llmConfig,
+      onAssistantDelta: (delta) => {
+        if (session.activeRun?.id !== activeRun.id || activeRun.cancelled) {
+          return;
+        }
+
+        sendEvent(ws, {
+          type: "assistant_delta",
+          requestId: message.requestId,
+          runId: activeRun.id,
+          delta,
+          timestamp: new Date().toISOString()
+        });
+      },
+      onThinkingDelta: (delta) => {
+        if (session.activeRun?.id !== activeRun.id || activeRun.cancelled) {
+          return;
+        }
+
+        sendEvent(ws, {
+          type: "assistant_thinking_delta",
+          requestId: message.requestId,
+          runId: activeRun.id,
+          delta,
+          timestamp: new Date().toISOString()
+        });
+      },
       signal: activeRun.controller.signal
     });
   } catch {

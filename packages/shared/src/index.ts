@@ -600,6 +600,7 @@ export type AgentClientMessage =
 export type AgentServerEventType =
   | "connected"
   | "assistant_delta"
+  | "assistant_thinking_delta"
   | "plan_created"
   | "plan_updated"
   | "job_started"
@@ -637,6 +638,11 @@ export interface AgentErrorEvent extends AgentBaseServerEvent {
 
 export interface AgentAssistantDeltaEvent extends AgentBaseServerEvent {
   type: "assistant_delta";
+  delta: string;
+}
+
+export interface AgentAssistantThinkingDeltaEvent extends AgentBaseServerEvent {
+  type: "assistant_thinking_delta";
   delta: string;
 }
 
@@ -705,6 +711,7 @@ export type AgentServerEvent =
   | AgentPongEvent
   | AgentErrorEvent
   | AgentAssistantDeltaEvent
+  | AgentAssistantThinkingDeltaEvent
   | AgentPlanCreatedEvent
   | AgentPlanUpdatedEvent
   | AgentJobStartedEvent

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { ChatOpenAI } from "@langchain/openai";
 import { createDeepAgent } from "deepagents";
 import type { UsableAgentLlmConfig } from "./agent-config.js";
-import { createPlanningSkillFiles, createPlanningSystemPrompt } from "./agent-planning-skill.js";
+import { CANVAS_IMAGE_PLANNING_SKILL, createPlanningSkillFiles, createPlanningSystemPrompt } from "./agent-planning-skill.js";
 import {
   GENERATION_COUNTS,
   GENERATION_PLAN_SCHEMA_VERSION,
@@ -85,6 +85,7 @@ interface PlannerMessage {
 }
 
 export interface GenerationPlanAgentRunner {
+  streamsThinkingDeltas?: boolean;
   invoke(
     input: {
       messages: PlannerMessage[];
@@ -96,6 +97,7 @@ export interface GenerationPlanAgentRunner {
       };
       recursionLimit?: number;
       signal?: AbortSignal;
+      onThinkingDelta?: (delta: string) => void;
     }
   ): Promise<unknown>;
 }
@@ -105,6 +107,8 @@ export interface AgentPlannerInput {
   defaults?: unknown;
   selectedReferences?: unknown;
   llmConfig: UsableAgentLlmConfig;
+  onAssistantDelta?: (delta: string) => void;
+  onThinkingDelta?: (delta: string) => void;
   signal?: AbortSignal;
   now?: Date;
   runner?: GenerationPlanAgentRunner;
@@ -175,32 +179,45 @@ export async function createGenerationPlan(input: AgentPlannerInput): Promise<Ag
 
   let agentResult: unknown;
   try {
+    emitAssistantDelta(input.onAssistantDelta, [
+      "我会先把你的需求整理成可执行的图像计划。",
+      " "
+    ]);
+    const runnerOptions: NonNullable<Parameters<GenerationPlanAgentRunner["invoke"]>[1]> = {
+      configurable: {
+        thread_id: `agent-plan-${randomUUID()}`
+      },
+      recursionLimit: 30,
+      signal: input.signal
+    };
+    if (runner.streamsThinkingDeltas) {
+      runnerOptions.onThinkingDelta = input.onThinkingDelta;
+    }
+
     agentResult = await runner.invoke(
       {
         messages: [message],
         files: createPlanningSkillFiles(now)
       },
-      {
-        configurable: {
-          thread_id: `agent-plan-${randomUUID()}`
-        },
-        recursionLimit: 30,
-        signal: input.signal
-      }
+      runnerOptions
     );
-  } catch {
     if (input.signal?.aborted) {
-      return {
-        ok: false,
-        code: "agent_run_cancelled",
-        message: "Agent planning was cancelled."
-      };
+      return agentRunCancelledResult();
+    }
+
+    const reasoningText = runner.streamsThinkingDeltas ? undefined : extractReasoningFromAgentResult(agentResult);
+    if (reasoningText) {
+      emitAssistantDelta(input.onThinkingDelta, [reasoningText]);
+    }
+  } catch (error) {
+    if (input.signal?.aborted) {
+      return agentRunCancelledResult();
     }
 
     return {
       ok: false,
       code: "agent_planner_failed",
-      message: "Agent planner request failed."
+      message: plannerRequestFailureMessage(error)
     };
   }
 
@@ -228,21 +245,39 @@ export async function createGenerationPlan(input: AgentPlannerInput): Promise<Ag
     };
   }
 
+  emitAssistantDelta(input.onAssistantDelta, ["计划已生成，你可以在画布节点中检查并执行。"]);
+
   return {
     ok: true,
     plan: validated.plan
   };
 }
 
+function agentRunCancelledResult(): AgentPlannerFailure {
+  return {
+    ok: false,
+    code: "agent_run_cancelled",
+    message: "Agent planning was cancelled."
+  };
+}
+
+function emitAssistantDelta(onAssistantDelta: AgentPlannerInput["onAssistantDelta"], chunks: string[]): void {
+  if (!onAssistantDelta) {
+    return;
+  }
+
+  for (const chunk of chunks) {
+    onAssistantDelta(chunk);
+  }
+}
+
 export function createDeepAgentsPlanner(config: UsableAgentLlmConfig): GenerationPlanAgentRunner {
-  const model = new ChatOpenAI({
-    apiKey: config.apiKey,
-    configuration: config.baseUrl ? { baseURL: config.baseUrl } : undefined,
-    maxRetries: 1,
-    model: config.model,
-    temperature: 0,
-    timeout: config.timeoutMs
-  });
+  const isDeepSeek = isDeepSeekAgentConfig(config);
+  const model = createAgentChatModel(config, isDeepSeek);
+
+  if (isDeepSeek) {
+    return createDirectChatPlanner(model);
+  }
 
   return createDeepAgent({
     model,
@@ -250,6 +285,118 @@ export function createDeepAgentsPlanner(config: UsableAgentLlmConfig): Generatio
     systemPrompt: createPlanningSystemPrompt(),
     tools: []
   }) as unknown as GenerationPlanAgentRunner;
+}
+
+function createAgentChatModel(config: UsableAgentLlmConfig, isDeepSeek = isDeepSeekAgentConfig(config)): ChatOpenAI {
+  const modelKwargs = agentModelKwargsForConfig(config);
+  return new ChatOpenAI({
+    apiKey: config.apiKey,
+    configuration: config.baseUrl ? { baseURL: config.baseUrl } : undefined,
+    maxRetries: 1,
+    model: config.model,
+    modelKwargs,
+    streaming: isDeepSeek,
+    streamUsage: false,
+    temperature: isDeepSeek ? undefined : 0,
+    timeout: config.timeoutMs
+  });
+}
+
+export function createDirectChatPlanner(model: ChatOpenAI): GenerationPlanAgentRunner {
+  return {
+    streamsThinkingDeltas: true,
+    async invoke(input, options) {
+      const stream = await model.stream(
+        [
+          {
+            role: "system",
+            content: createDirectPlanningSystemPrompt()
+          },
+          ...input.messages
+        ] as never,
+        {
+          signal: options?.signal
+        } as never
+      );
+      const contentChunks: string[] = [];
+      const reasoningSeen = new Set<string>();
+
+      for await (const chunk of stream as AsyncIterable<unknown>) {
+        throwIfAborted(options?.signal);
+        for (const reasoningDelta of extractReasoningDeltasFromStreamChunk(chunk, reasoningSeen)) {
+          options?.onThinkingDelta?.(reasoningDelta);
+        }
+        throwIfAborted(options?.signal);
+
+        const content = extractContentDeltaFromStreamChunk(chunk);
+        if (content !== undefined) {
+          contentChunks.push(content);
+        }
+        throwIfAborted(options?.signal);
+      }
+
+      throwIfAborted(options?.signal);
+
+      return {
+        messages: [
+          {
+            content: contentChunks.join("")
+          }
+        ]
+      };
+    }
+  };
+}
+
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) {
+    throw new Error("Agent planning was cancelled.");
+  }
+}
+
+function extractContentDeltaFromStreamChunk(chunk: unknown): string | undefined {
+  if (typeof chunk === "string") {
+    return chunk.length > 0 ? chunk : undefined;
+  }
+
+  if (!isRecord(chunk)) {
+    return undefined;
+  }
+
+  return streamingContentToText(chunk.content) ?? streamingContentToText(chunk.text);
+}
+
+function extractReasoningDeltasFromStreamChunk(chunk: unknown, seen: Set<string>): string[] {
+  const deltas: string[] = [];
+  collectStreamingReasoningText(chunk, deltas, seen);
+  return deltas;
+}
+
+function createDirectPlanningSystemPrompt(): string {
+  return [
+    createPlanningSystemPrompt(),
+    "The full canvas-image-planning skill is embedded below for this single chat completion request.",
+    CANVAS_IMAGE_PLANNING_SKILL
+  ].join("\n\n");
+}
+
+export function agentModelKwargsForConfig(config: Pick<UsableAgentLlmConfig, "baseUrl" | "model">): Record<string, unknown> {
+  if (!isDeepSeekAgentConfig(config)) {
+    return {};
+  }
+
+  return {
+    thinking: {
+      type: "enabled"
+    },
+    reasoning_effort: "high"
+  };
+}
+
+function isDeepSeekAgentConfig(config: Pick<UsableAgentLlmConfig, "baseUrl" | "model">): boolean {
+  const model = config.model.trim().toLowerCase();
+  const baseUrl = config.baseUrl?.trim().toLowerCase() ?? "";
+  return model.startsWith("deepseek-") || baseUrl.includes("deepseek.");
 }
 
 export function parseGenerationPlanDefaults(input: unknown): GenerationPlanDefaultsParseResult {
@@ -532,6 +679,115 @@ export function extractTextFromAgentResult(result: unknown): string | undefined 
   return undefined;
 }
 
+export function extractReasoningFromAgentResult(result: unknown): string | undefined {
+  const chunks: string[] = [];
+  const seen = new Set<string>();
+
+  collectReasoningText(result, chunks, seen);
+  if (isRecord(result) && Array.isArray(result.messages)) {
+    for (const message of result.messages) {
+      collectReasoningText(message, chunks, seen);
+    }
+  }
+
+  return nonEmptyString(chunks.join("\n\n"));
+}
+
+function collectReasoningText(value: unknown, chunks: string[], seen: Set<string>): void {
+  if (!isRecord(value)) {
+    return;
+  }
+
+  for (const candidate of reasoningCandidates(value)) {
+    const text = reasoningContentToText(candidate);
+    if (!text || seen.has(text)) {
+      continue;
+    }
+
+    seen.add(text);
+    chunks.push(text);
+  }
+}
+
+function collectStreamingReasoningText(value: unknown, chunks: string[], seen: Set<string>): void {
+  if (!isRecord(value)) {
+    return;
+  }
+
+  for (const candidate of reasoningCandidates(value)) {
+    const text = reasoningContentToStreamingText(candidate);
+    if (text === undefined || text.trim().length === 0 || seen.has(text)) {
+      continue;
+    }
+
+    seen.add(text);
+    chunks.push(text);
+  }
+}
+
+function reasoningCandidates(value: Record<string, unknown>): unknown[] {
+  return [
+    value.reasoning_content,
+    value.reasoning,
+    isRecord(value.additional_kwargs) ? value.additional_kwargs.reasoning_content : undefined,
+    isRecord(value.additional_kwargs) ? value.additional_kwargs.reasoning : undefined,
+    isRecord(value.response_metadata) ? value.response_metadata.reasoning_content : undefined,
+    isRecord(value.response_metadata) ? value.response_metadata.reasoning : undefined
+  ];
+}
+
+function reasoningContentToText(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    return nonEmptyString(value);
+  }
+
+  if (Array.isArray(value)) {
+    const text = value
+      .map((item) => reasoningContentToText(item) ?? "")
+      .filter(Boolean)
+      .join("\n")
+      .trim();
+    return nonEmptyString(text);
+  }
+
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const direct = contentToText(value.text) ?? contentToText(value.content) ?? contentToText(value.summary);
+  if (direct) {
+    return direct;
+  }
+
+  return Array.isArray(value.summary) ? reasoningContentToText(value.summary) : undefined;
+}
+
+function reasoningContentToStreamingText(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    return value.length > 0 ? value : undefined;
+  }
+
+  if (Array.isArray(value)) {
+    const text = value
+      .map((item) => reasoningContentToStreamingText(item) ?? "")
+      .filter((item) => item.length > 0)
+      .join("\n");
+    return text.length > 0 ? text : undefined;
+  }
+
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const direct =
+    streamingContentToText(value.text) ?? streamingContentToText(value.content) ?? streamingContentToText(value.summary);
+  if (direct !== undefined) {
+    return direct;
+  }
+
+  return Array.isArray(value.summary) ? reasoningContentToStreamingText(value.summary) : undefined;
+}
+
 function parsePlanDefaultsFromPlan(
   input: unknown,
   fallback: GenerationPlanDefaults,
@@ -632,13 +888,10 @@ function parsePlanJobs(
       issues.push(issue("invalid_plan_job", 'GenerationJob status must be "queued" before execution.', `${path}.status`));
     }
 
-    const size = rawJob.size === undefined ? undefined : parseOptionalImageSize(rawJob.size);
-    if (rawJob.size !== undefined && !size) {
-      issues.push(issue("invalid_plan_job", "GenerationJob size is invalid.", `${path}.size`));
-    }
+    const size = isOmittedOptionalValue(rawJob.size) ? undefined : parseOptionalImageSize(rawJob.size);
     const resolvedSize = size ?? defaults.size;
     const sizeValidation = validateSceneImageSize({ size: resolvedSize });
-    if (!sizeValidation.ok) {
+    if (size && !sizeValidation.ok) {
       issues.push(issue("invalid_plan_job", sizeValidation.message, `${path}.size`));
     }
 
@@ -737,7 +990,7 @@ function parseJobReferences(
       continue;
     }
 
-    const kind = parseReferenceKind(rawReference.kind);
+    const kind = parseReferenceKind(rawReference.kind ?? rawReference.type);
     if (!kind) {
       issues.push(issue("invalid_plan_reference", "GenerationReference kind is unsupported.", `${referencePath}.kind`));
     }
@@ -750,8 +1003,8 @@ function parseJobReferences(
     references.push({
       kind: kind ?? "selected_canvas_image",
       usage,
-      assetId: stringValue(rawReference.assetId),
-      jobId: stringValue(rawReference.jobId),
+      assetId: stringValue(rawReference.assetId ?? rawReference.id),
+      jobId: stringValue(rawReference.jobId ?? rawReference.sourceJobId ?? rawReference.fromJobId),
       outputId: stringValue(rawReference.outputId),
       label: stringValue(rawReference.label)
     });
@@ -779,8 +1032,8 @@ function parsePlanEdges(input: unknown, issues: GenerationPlanValidationIssue[])
       continue;
     }
 
-    const fromJobId = stringValue(rawEdge.fromJobId);
-    const toJobId = stringValue(rawEdge.toJobId);
+    const fromJobId = stringValue(rawEdge.fromJobId ?? rawEdge.from ?? rawEdge.sourceJobId ?? rawEdge.source);
+    const toJobId = stringValue(rawEdge.toJobId ?? rawEdge.to ?? rawEdge.targetJobId ?? rawEdge.target);
     if (!fromJobId || !toJobId) {
       issues.push(issue("invalid_plan_edge", "Dependency edge requires fromJobId and toJobId.", path));
       continue;
@@ -966,6 +1219,20 @@ function invalidPlan(
   };
 }
 
+function plannerRequestFailureMessage(error: unknown): string {
+  const detail = error instanceof Error ? sanitizePlannerErrorText(error.message) : "";
+  return detail ? `Agent planner request failed: ${detail}` : "Agent planner request failed.";
+}
+
+function sanitizePlannerErrorText(value: string): string {
+  return value
+    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gu, "Bearer [redacted]")
+    .replace(/sk-[A-Za-z0-9._~+/=-]+/gu, "sk-[redacted]")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, 360);
+}
+
 function issue(
   code: GenerationPlanValidationCode,
   message: string,
@@ -979,6 +1246,17 @@ function issue(
 }
 
 function parseOptionalImageSize(value: unknown): ImageSize | undefined {
+  if (typeof value === "string") {
+    const match = value.trim().match(/^(\d+)\s*[xX×*]\s*(\d+)$/u);
+    if (!match) {
+      return undefined;
+    }
+
+    const width = positiveIntegerValue(match[1]);
+    const height = positiveIntegerValue(match[2]);
+    return width && height ? { width, height } : undefined;
+  }
+
   if (!isRecord(value)) {
     return undefined;
   }
@@ -986,6 +1264,10 @@ function parseOptionalImageSize(value: unknown): ImageSize | undefined {
   const width = positiveIntegerValue(value.width);
   const height = positiveIntegerValue(value.height);
   return width && height ? { width, height } : undefined;
+}
+
+function isOmittedOptionalValue(value: unknown): boolean {
+  return value === undefined || value === null || value === "";
 }
 
 function parseQuality(value: unknown): ImageQuality | undefined {
@@ -1060,6 +1342,27 @@ function contentToText(value: unknown): string | undefined {
   return undefined;
 }
 
+function streamingContentToText(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    return value.length > 0 ? value : undefined;
+  }
+
+  if (Array.isArray(value)) {
+    let text = "";
+    for (const item of value) {
+      if (typeof item === "string") {
+        text += item;
+      } else if (isRecord(item) && typeof item.text === "string") {
+        text += item.text;
+      }
+    }
+
+    return text.length > 0 ? text : undefined;
+  }
+
+  return undefined;
+}
+
 function nonEmptyString(value: string): string | undefined {
   const trimmed = value.trim();
   return trimmed ? trimmed : undefined;
@@ -1080,7 +1383,16 @@ function isoStringValue(value: unknown): string | undefined {
 }
 
 function positiveIntegerValue(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
+  if (typeof value === "number") {
+    return Number.isInteger(value) && value > 0 ? value : undefined;
+  }
+
+  if (typeof value !== "string" || !/^\d+$/u.test(value.trim())) {
+    return undefined;
+  }
+
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number > 0 ? number : undefined;
 }
 
 function truncate(value: string, maxLength: number): string {
