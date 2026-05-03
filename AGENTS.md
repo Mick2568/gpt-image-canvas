@@ -6,6 +6,7 @@
 - The API app lives in `apps/api`; the web app lives in `apps/web`; shared contracts live in `packages/shared`.
 - Root scripts delegate to workspace packages: `pnpm dev`, `pnpm api:dev`, `pnpm web:dev`, `pnpm typecheck`, `pnpm build`, and `pnpm start`.
 - For browser verification, run `pnpm dev` and open the Vite web app, usually `http://localhost:5173`.
+- After switching Node versions, rebuild native API dependencies if `better-sqlite3` reports a `NODE_MODULE_VERSION` mismatch: `pnpm --filter @gpt-image-canvas/api rebuild better-sqlite3 --stream`.
 - For Docker verification with real `.env` credentials, run `docker compose config --quiet --no-env-resolution`; plain `docker compose config` expands env files and can print secrets. When Docker is available, run `docker compose up --build` and check the app on the configured `PORT` (default `8787`).
 - Keep local agent scratch files under `.codex-temp/`; do not commit local run logs or machine-specific paths.
 - Do not commit `.env`, `.ralph`, `.codex-temp`, `data`, generated images, SQLite databases, or build output.
