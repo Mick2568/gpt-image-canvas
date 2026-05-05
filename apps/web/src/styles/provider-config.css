@@ -965,7 +965,7 @@
   }
 
   .provider-config-tabs {
-    position: static;
+    position: relative;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-self: stretch;
     gap: 0.28rem;

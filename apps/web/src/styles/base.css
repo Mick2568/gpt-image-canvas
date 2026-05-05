@@ -228,6 +228,16 @@ button {
   }
 }
 
+@keyframes app-view-fade-in {
+  from {
+    opacity: 0.9;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes app-tab-panel-in {
   from {
     opacity: 0;
@@ -268,6 +278,10 @@ button {
 
 .app-view:not([hidden]) {
   animation: app-view-in var(--motion-duration-panel) var(--motion-ease-standard) both;
+}
+
+.app-shell.app-view:not([hidden]) {
+  animation-name: app-view-fade-in;
 }
 
 .app-modal-backdrop {
