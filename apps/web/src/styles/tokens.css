@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ai-panel-width: clamp(380px, 28vw, 440px);
+  --app-nav-height: 3.75rem;
+  --brand-blue: #c65f32;
+  --brand-blue-dark: #7e321a;
+  --brand-cyan: #0f766e;
+  --brand-cyan-soft: #d9fbf4;
+  --brand-ink: #15110d;
+  --paper: #f7f0e5;
+  --paper-soft: #fbf7ef;
+  --paper-panel: #fffdf8;
+  --canvas-paper: #fff7e6;
+  --canvas-paper-grid: rgb(126 50 26 / 0.18);
+  --ink: #15110d;
+  --muted-ink: #6f665c;
+  --line: #e5d7c3;
+  --line-strong: #cbb79a;
+  --accent: #c65f32;
+  --accent-dark: #7e321a;
+  --focus: #0f766e;
+  --focus-soft: #d9fbf4;
+  --danger: #b42318;
+  --success: #0f766e;
+  --warning: #9a5b00;
+  --shadow-soft: 0 18px 44px rgb(51 36 24 / 0.12);
+  --shadow-lift: 0 28px 70px rgb(51 36 24 / 0.18);
+  --font-ui: "Noto Sans SC", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-editorial: "Noto Serif SC", "Songti SC", "STSong", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-family: var(--font-ui);
+  color: var(--ink);
+  background: #15110d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+[hidden] {
+  display: none !important;
+}

@@ -9,9 +9,9 @@
     "dev": "pnpm --filter @gpt-image-canvas/shared build && tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "db:generate": "drizzle-kit generate",
-    "smoke:agent": "tsx src/agent-smoke.ts",
-    "smoke:executor": "tsx src/agent-executor-smoke.ts",
-    "smoke:planner": "tsx src/agent-planner-smoke.ts",
+    "smoke:agent": "tsx src/smoke/agent-smoke.ts",
+    "smoke:executor": "tsx src/smoke/agent-executor-smoke.ts",
+    "smoke:planner": "tsx src/smoke/agent-planner-smoke.ts",
     "typecheck": "pnpm --filter @gpt-image-canvas/shared build && tsc -p tsconfig.json --noEmit",
     "start": "node dist/index.js"
   },
