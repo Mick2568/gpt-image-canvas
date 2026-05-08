@@ -144,6 +144,7 @@ export type GenerationPlanValidationResult =
 
 export interface GenerateImageRequest {
   prompt: string;
+  clientRequestId?: string;
   presetId: StylePresetId;
   size: ImageSize;
   quality: ImageQuality;

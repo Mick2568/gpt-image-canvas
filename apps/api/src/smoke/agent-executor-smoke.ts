@@ -17,9 +17,10 @@ const tinyPngBase64 =
 
 async function main(): Promise<void> {
   try {
-    const [{ executeGenerationPlan, isExecutableGenerationPlan }, { closeDatabase }] = await Promise.all([
+    const [{ executeGenerationPlan, isExecutableGenerationPlan }, { closeDatabase }, imageGeneration] = await Promise.all([
       import("../domain/agent/executor.js"),
-      import("../infrastructure/database.js")
+      import("../infrastructure/database.js"),
+      import("../domain/generation/image-generation.js")
     ]);
 
     try {
@@ -155,6 +156,8 @@ async function main(): Promise<void> {
       expect(retryProvider.generateCalls === 0, "retry keeps succeeded upstream anchor");
       expect(retryProvider.editCalls === 1, "retry reruns failed downstream job");
 
+      await smokeManualGenerationRecords(imageGeneration);
+
       const failedProvider = new FakeImageProvider({ failGenerate: true });
       const blocked = await executeGenerationPlan({
         plan: planFixture("plan-blocked"),
@@ -199,6 +202,84 @@ class FakeImageProvider implements ImageProvider {
     expect(input.referenceImages.length > 0, "edit generation receives references");
     return providerResult(input.sizeApiValue);
   }
+}
+
+async function smokeManualGenerationRecords(imageGeneration: typeof import("../domain/generation/image-generation.js")): Promise<void> {
+  const input = imageProviderInputFixture({ clientRequestId: "manual-smoke-running" });
+  const running = imageGeneration.createRunningTextToImageGeneration(input);
+  expect(running.id === "manual-smoke-running", "manual running generation preserves clientRequestId");
+  expect(running.status === "running", "manual generation starts as running");
+  expect(running.outputs.length === 0, "manual running generation has no outputs yet");
+  expect(imageGeneration.getGenerationRecord(running.id)?.status === "running", "manual running generation is persisted");
+
+  const completed = await imageGeneration.finishTextToImageGeneration(
+    running.id,
+    input,
+    new FakeImageProvider(),
+    new AbortController().signal
+  );
+  expect(completed.id === running.id, "manual generation completes the same record");
+  expect(completed.status === "succeeded", "manual generation can complete asynchronously");
+  expect(completed.outputs.length === 1 && completed.outputs[0]?.asset, "manual generation stores the generated asset");
+
+  const referenceInput = editImageProviderInputFixture({ clientRequestId: "manual-smoke-reference" });
+  const referenceRunning = await imageGeneration.createRunningReferenceImageGeneration(referenceInput);
+  expect(referenceRunning.record.id === "manual-smoke-reference", "manual reference generation preserves clientRequestId");
+  expect(referenceRunning.record.mode === "edit", "manual reference generation is stored as edit mode");
+  expect(referenceRunning.record.referenceAssetIds?.length === 1, "manual reference generation persists reference asset IDs");
+  expect(referenceRunning.record.outputs.length === 0, "manual running reference generation has no outputs yet");
+
+  const referenceProvider = new FakeImageProvider();
+  const referenceCompleted = await imageGeneration.finishReferenceImageGeneration(
+    referenceRunning.record.id,
+    referenceRunning.input,
+    referenceProvider,
+    new AbortController().signal
+  );
+  expect(referenceCompleted.id === referenceRunning.record.id, "manual reference generation completes the same record");
+  expect(referenceCompleted.status === "succeeded", "manual reference generation can complete asynchronously");
+  expect(referenceCompleted.outputs.length === 1 && referenceCompleted.outputs[0]?.asset, "manual reference generation stores output asset");
+  expect(referenceProvider.editCalls === 1, "manual reference generation calls edit provider once");
+
+  const cancellable = imageGeneration.createRunningTextToImageGeneration(
+    imageProviderInputFixture({ clientRequestId: "manual-smoke-cancel" })
+  );
+  const cancelled = imageGeneration.cancelGenerationRecord(cancellable.id);
+  expect(cancelled?.status === "cancelled", "manual generation cancellation is persisted");
+
+  const stale = imageGeneration.createRunningTextToImageGeneration(imageProviderInputFixture({ clientRequestId: "manual-smoke-stale" }));
+  imageGeneration.markInterruptedGenerationRecordsFailed();
+  const interrupted = imageGeneration.getGenerationRecord(stale.id);
+  expect(interrupted?.status === "failed", "stale running generation is marked failed on API startup");
+}
+
+function imageProviderInputFixture(overrides: Partial<ImageProviderInput> = {}): ImageProviderInput {
+  return {
+    originalPrompt: "Create a fixture image.",
+    presetId: "none",
+    prompt: "Create a fixture image.",
+    size: {
+      width: 1024,
+      height: 1024
+    },
+    sizeApiValue: "1024x1024",
+    quality: "auto",
+    outputFormat: "png",
+    count: 1,
+    ...overrides
+  };
+}
+
+function editImageProviderInputFixture(overrides: Partial<EditImageProviderInput> = {}): EditImageProviderInput {
+  return {
+    ...imageProviderInputFixture(),
+    referenceImages: [
+      {
+        dataUrl: `data:image/png;base64,${tinyPngBase64}`
+      }
+    ],
+    ...overrides
+  };
 }
 
 function providerResult(size: string): ProviderResult {

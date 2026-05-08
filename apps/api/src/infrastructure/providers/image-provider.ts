@@ -10,6 +10,7 @@ import {
 
 export interface ImageProviderInput {
   originalPrompt: string;
+  clientRequestId?: string;
   presetId: string;
   prompt: string;
   size: ImageSize;

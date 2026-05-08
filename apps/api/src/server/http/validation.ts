@@ -27,6 +27,7 @@ import { errorResponse, type ErrorResponseBody, type ParseResult } from "./error
 
 const MAX_PROJECT_SNAPSHOT_BYTES = 100 * 1024 * 1024;
 const MAX_PROJECT_NAME_LENGTH = 120;
+const MAX_CLIENT_REQUEST_ID_LENGTH = 120;
 
 export interface ProjectPayload {
   name?: string;
@@ -507,10 +508,16 @@ function parseBaseImagePayload(input: unknown): ParseResult<ImageProviderInput> 
     return count;
   }
 
+  const clientRequestId = parseClientRequestId(input.clientRequestId);
+  if (!clientRequestId.ok) {
+    return clientRequestId;
+  }
+
   return {
     ok: true,
     value: {
       originalPrompt: prompt.trim(),
+      clientRequestId: clientRequestId.value,
       presetId: stylePreset.value,
       prompt: composePrompt(prompt, stylePreset.value),
       size: resolvedSize.size,
@@ -519,6 +526,42 @@ function parseBaseImagePayload(input: unknown): ParseResult<ImageProviderInput> 
       outputFormat: outputFormat.value,
       count: count.value
     }
+  };
+}
+
+function parseClientRequestId(value: unknown): ParseResult<string | undefined> {
+  if (value === undefined) {
+    return {
+      ok: true,
+      value: undefined
+    };
+  }
+
+  if (typeof value !== "string") {
+    return {
+      ok: false,
+      error: errorResponse("invalid_request", "Client request ID must be a string.")
+    };
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return {
+      ok: true,
+      value: undefined
+    };
+  }
+
+  if (trimmed.length > MAX_CLIENT_REQUEST_ID_LENGTH || !/^[a-zA-Z0-9:_-]+$/u.test(trimmed)) {
+    return {
+      ok: false,
+      error: errorResponse("invalid_request", "Client request ID format is unsupported.")
+    };
+  }
+
+  return {
+    ok: true,
+    value: trimmed
   };
 }
 

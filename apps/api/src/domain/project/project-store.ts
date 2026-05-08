@@ -228,7 +228,7 @@ function readGenerationHistory(): ApiGenerationRecord[] {
     referenceAssetIdsByGenerationId.set(referenceRow.generationId, existing);
   }
 
-  return records.flatMap((record) => {
+  return records.map((record) => {
     const mappedOutputs = (outputsByGenerationId.get(record.id) ?? []).map((output) => ({
       id: output.id,
       status: output.status as OutputStatus,
@@ -236,32 +236,26 @@ function readGenerationHistory(): ApiGenerationRecord[] {
       error: output.error ?? undefined
     }));
 
-    if (mappedOutputs.length === 0) {
-      return [];
-    }
-
-    return [
-      {
-        id: record.id,
-        mode: record.mode as ImageMode,
-        prompt: record.prompt,
-        effectivePrompt: record.effectivePrompt,
-        presetId: record.presetId,
-        size: {
-          width: record.width,
-          height: record.height
-        },
-        quality: record.quality as ImageQuality,
-        outputFormat: record.outputFormat as OutputFormat,
-        count: record.count,
-        status: record.status as GenerationStatus,
-        error: record.error ?? undefined,
-        referenceAssetIds: referenceAssetIdsByGenerationId.get(record.id) ?? (record.referenceAssetId ? [record.referenceAssetId] : undefined),
-        referenceAssetId: record.referenceAssetId ?? undefined,
-        createdAt: record.createdAt,
-        outputs: mappedOutputs
-      }
-    ];
+    return {
+      id: record.id,
+      mode: record.mode as ImageMode,
+      prompt: record.prompt,
+      effectivePrompt: record.effectivePrompt,
+      presetId: record.presetId,
+      size: {
+        width: record.width,
+        height: record.height
+      },
+      quality: record.quality as ImageQuality,
+      outputFormat: record.outputFormat as OutputFormat,
+      count: record.count,
+      status: record.status as GenerationStatus,
+      error: record.error ?? undefined,
+      referenceAssetIds: referenceAssetIdsByGenerationId.get(record.id) ?? (record.referenceAssetId ? [record.referenceAssetId] : undefined),
+      referenceAssetId: record.referenceAssetId ?? undefined,
+      createdAt: record.createdAt,
+      outputs: mappedOutputs
+    };
   });
 }
 
