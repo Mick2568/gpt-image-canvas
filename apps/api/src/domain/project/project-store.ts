@@ -219,6 +219,37 @@ export function deleteGalleryOutput(outputId: string): boolean {
   return result.changes > 0;
 }
 
+export function deleteGalleryOutputs(outputIds: string[]): string[] {
+  if (outputIds.length === 0) {
+    return [];
+  }
+
+  const deletedOutputIds: string[] = [];
+  for (const outputId of outputIds) {
+    if (deleteGalleryOutput(outputId)) {
+      deletedOutputIds.push(outputId);
+    }
+  }
+
+  return deletedOutputIds;
+}
+
+export function deleteGalleryOutputsByAssetIds(assetIds: string[]): string[] {
+  if (assetIds.length === 0) {
+    return [];
+  }
+
+  const rows = db
+    .select({
+      outputId: generationOutputs.id
+    })
+    .from(generationOutputs)
+    .where(and(inArray(generationOutputs.assetId, assetIds), eq(generationOutputs.status, "succeeded")))
+    .all();
+
+  return deleteGalleryOutputs(rows.map((row) => row.outputId));
+}
+
 export function getGalleryExportAssets(outputIds: string[]): GalleryExportAsset[] {
   if (outputIds.length === 0) {
     return [];
