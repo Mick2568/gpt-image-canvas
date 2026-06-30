@@ -375,9 +375,9 @@
 
 .gallery-card__actions {
   display: grid;
-  width: 9.8rem;
+  width: 12.25rem;
   flex: none;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.35rem;
 }
 
@@ -530,7 +530,7 @@
 
 .gallery-modal__actions {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   border-top: 1px solid #e2e8f0;
   border-bottom: 0;
   background: #f8fafc;
@@ -673,7 +673,7 @@
   }
 
   .gallery-card__actions {
-    width: 9.4rem;
+    width: 12rem;
   }
 
   .gallery-empty-state {

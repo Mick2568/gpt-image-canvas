@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "dev": "pnpm --filter @gpt-image-canvas/shared build && tsx watch src/index.ts",
+    "dev": "pnpm --filter @gpt-image-canvas/shared build && tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "db:generate": "drizzle-kit generate",
     "smoke:agent": "tsx src/smoke/agent-smoke.ts",

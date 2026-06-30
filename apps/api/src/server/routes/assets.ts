@@ -55,7 +55,7 @@ export function registerAssetRoutes(app: Hono): void {
   app.get("/api/assets/:id/download", async (c) => {
     const asset = await readStoredAsset(c.req.param("id"));
     if (!asset) {
-      return c.json(errorResponse("not_found", "找不到请求的图像资源。"), 404);
+      return c.json(errorResponse("not_found", "找不到請求的圖片資源。"), 404);
     }
 
     return new Response(new Uint8Array(asset.bytes), {
@@ -71,7 +71,7 @@ export function registerAssetRoutes(app: Hono): void {
   app.get("/api/assets/:id", async (c) => {
     const asset = await readStoredAsset(c.req.param("id"));
     if (!asset) {
-      return c.json(errorResponse("not_found", "找不到请求的图像资源。"), 404);
+      return c.json(errorResponse("not_found", "找不到請求的圖片資源。"), 404);
     }
 
     return new Response(new Uint8Array(asset.bytes), {

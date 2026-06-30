@@ -124,6 +124,48 @@ export const promptFavorites = sqliteTable("prompt_favorites", {
   updatedAt: text("updated_at").notNull()
 });
 
+export const creativeProjects = sqliteTable("creative_projects", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull()
+});
+
+export const projectRecords = sqliteTable("project_records", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => creativeProjects.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  type: text("type").notNull(),
+  stage: text("stage").notNull(),
+  status: text("status").notNull(),
+  briefJson: text("brief_json").notNull(),
+  prompt: text("prompt").notNull(),
+  notes: text("notes").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull()
+});
+
+export const projectRecordLinks = sqliteTable("project_record_links", {
+  id: text("id").primaryKey(),
+  recordId: text("record_id")
+    .notNull()
+    .references(() => projectRecords.id, { onDelete: "cascade" }),
+  linkType: text("link_type").notNull(),
+  targetId: text("target_id").notNull(),
+  targetPath: text("target_path").notNull(),
+  title: text("title").notNull(),
+  curationStatus: text("curation_status").notNull(),
+  rejectReasonsJson: text("reject_reasons_json").notNull(),
+  notes: text("notes").notNull(),
+  metadataJson: text("metadata_json").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull()
+});
+
 export const codexOAuthTokens = sqliteTable("codex_oauth_tokens", {
   id: text("id").primaryKey(),
   accessToken: text("access_token"),
@@ -206,5 +248,24 @@ export const referenceAssetRelations = relations(generationReferenceAssets, ({ o
   asset: one(assets, {
     fields: [generationReferenceAssets.assetId],
     references: [assets.id]
+  })
+}));
+
+export const creativeProjectRelations = relations(creativeProjects, ({ many }) => ({
+  records: many(projectRecords)
+}));
+
+export const projectRecordRelations = relations(projectRecords, ({ many, one }) => ({
+  project: one(creativeProjects, {
+    fields: [projectRecords.projectId],
+    references: [creativeProjects.id]
+  }),
+  links: many(projectRecordLinks)
+}));
+
+export const projectRecordLinkRelations = relations(projectRecordLinks, ({ one }) => ({
+  record: one(projectRecords, {
+    fields: [projectRecordLinks.recordId],
+    references: [projectRecords.id]
   })
 }));

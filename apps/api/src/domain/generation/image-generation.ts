@@ -328,17 +328,17 @@ export async function saveReferenceImageInput(input: ReferenceImageInput): Promi
 function referenceDataUrlToBytes(input: ReferenceImageInput): { bytes: Buffer; mimeType: string } {
   const match = /^data:([^;,]+);base64,(.+)$/u.exec(input.dataUrl);
   if (!match) {
-    throw new ProviderError("unsupported_provider_behavior", "参考图像格式不受支持。", 400);
+    throw new ProviderError("unsupported_provider_behavior", "參考圖片格式不受支援。", 400);
   }
 
   const mimeType = match[1].toLowerCase();
   if (!SUPPORTED_REFERENCE_MIME_TYPES.has(mimeType)) {
-    throw new ProviderError("unsupported_provider_behavior", "参考图像必须是 PNG、JPEG 或 WebP 格式。", 400);
+    throw new ProviderError("unsupported_provider_behavior", "參考圖片必須是 PNG、JPEG 或 WebP 格式。", 400);
   }
 
   const bytes = Buffer.from(match[2], "base64");
   if (bytes.length > MAX_REFERENCE_IMAGE_BYTES) {
-    throw new ProviderError("unsupported_provider_behavior", "参考图像不能超过 50MB。", 400);
+    throw new ProviderError("unsupported_provider_behavior", "參考圖片不能超過 50MB。", 400);
   }
 
   return {
@@ -434,7 +434,7 @@ async function generateSingleOutput(input: ImageProviderInput, provider: ImagePr
 
     const providerImage = result.images[0];
     if (!providerImage) {
-      throw new ProviderError("unsupported_provider_behavior", "上游图像服务没有返回图像结果。", 502);
+      throw new ProviderError("unsupported_provider_behavior", "上游圖片服務沒有回傳圖片結果。", 502);
     }
 
     const saved = await saveProviderImage(providerImage, input, signal);
@@ -478,7 +478,7 @@ async function editSingleOutput(input: EditImageProviderInput, provider: ImagePr
 
     const providerImage = result.images[0];
     if (!providerImage) {
-      throw new ProviderError("unsupported_provider_behavior", "上游图像服务没有返回图像结果。", 502);
+      throw new ProviderError("unsupported_provider_behavior", "上游圖片服務沒有回傳圖片結果。", 502);
     }
 
     const saved = await saveProviderImage(providerImage, input, signal);
@@ -662,7 +662,7 @@ function saveCompletedGenerationRecord(generationId: string, input: PersistedGen
   const successCount = outputs.filter((output) => output.status === "succeeded").length;
   const failureCount = outputs.length - successCount;
   const status = resolveGenerationStatus(successCount, failureCount);
-  const error = failureCount > 0 ? `${failureCount} 张图像生成失败。` : undefined;
+  const error = failureCount > 0 ? `${failureCount} 張圖片生成失敗。` : undefined;
 
   const referenceAssetIds = input.referenceAssetIds ?? (input.referenceAssetId ? [input.referenceAssetId] : []);
   const primaryReferenceAssetId = referenceAssetIds[0] ?? input.referenceAssetId;
@@ -1134,7 +1134,7 @@ function errorToMessage(error: unknown): string {
   if (error instanceof Error && error.message) {
     return sanitizeGenerationErrorMessage(error.message);
   }
-  return "图像生成失败，请重试。";
+  return "圖片生成失敗，請重試。";
 }
 
 function sanitizeGenerationErrorMessage(message: string): string {

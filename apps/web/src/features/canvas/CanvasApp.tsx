@@ -178,12 +178,12 @@ const TLDRAW_LICENSE_KEY =
 const TLDRAW_USER_ID = "gpt-image-canvas-local-user";
 
 function tldrawLocaleForLocale(locale: Locale): NonNullable<TLUserPreferences["locale"]> {
-  return locale === "zh-CN" ? "zh-cn" : "en";
+  return locale === "zh-TW" ? "zh-tw" : "en";
 }
 
 function localeForTldrawLocale(locale: TLUserPreferences["locale"]): Locale | undefined {
-  if (locale === "zh-cn") {
-    return "zh-CN";
+  if (locale === "zh-tw") {
+    return "zh-TW";
   }
 
   if (locale === "en") {
@@ -204,13 +204,13 @@ function isDeepSeekAgentConfigView(config: Pick<AgentLlmConfigView, "baseUrl" | 
 }
 
 function agentThinkingSummaryText(locale: Locale): string {
-  return locale === "zh-CN"
-    ? "正在分析任务，整理生图计划与确认节点。"
+  return locale === "zh-TW"
+    ? "正在分析任務，整理生圖計劃與確認節點。"
     : "Reviewing the request and shaping a generation plan with confirmation steps.";
 }
 
 function agentThinkingChipLabel(locale: Locale, thinkingType: AgentThinkingType, effort: AgentReasoningEffort): string {
-  if (locale === "zh-CN") {
+  if (locale === "zh-TW") {
     return thinkingType === "disabled" ? "思考 Off" : `思考 ${effort === "max" ? "Max" : "High"}`;
   }
 
@@ -218,32 +218,32 @@ function agentThinkingChipLabel(locale: Locale, thinkingType: AgentThinkingType,
 }
 
 function agentThinkingModeLabel(locale: Locale): string {
-  return locale === "zh-CN" ? "思考模式" : "Thinking mode";
+  return locale === "zh-TW" ? "思考模式" : "Thinking mode";
 }
 
 function agentThinkingEffortLabel(locale: Locale): string {
-  return locale === "zh-CN" ? "思考强度" : "Reasoning effort";
+  return locale === "zh-TW" ? "思考強度" : "Reasoning effort";
 }
 
 function agentThinkingEnabledLabel(locale: Locale): string {
-  return locale === "zh-CN" ? "开启" : "On";
+  return locale === "zh-TW" ? "開啟" : "On";
 }
 
 function agentThinkingDisabledLabel(locale: Locale): string {
-  return locale === "zh-CN" ? "关闭" : "Off";
+  return locale === "zh-TW" ? "關閉" : "Off";
 }
 
 function agentThinkingRawToggleLabel(locale: Locale, expanded: boolean): string {
-  if (locale === "zh-CN") {
-    return expanded ? "收起推理摘要" : "查看推理摘要";
+  if (locale === "zh-TW") {
+    return expanded ? "收起推理摘要" : "檢視推理摘要";
   }
 
   return expanded ? "Hide reasoning summary" : "Show reasoning summary";
 }
 
 function agentThinkingDetailsSummary(locale: Locale, characterCount: number): string {
-  return locale === "zh-CN"
-    ? `已收到 ${characterCount} 个字符的推理流。普通对话只保留当前进度，调试事件可在 Agent 调试记录中导出。`
+  return locale === "zh-TW"
+    ? `已收到 ${characterCount} 個字元的推理流。一般對話只保留目前進度，偵錯事件可在 Agent 偵錯記錄中匯出。`
     : `Received ${characterCount} characters of reasoning stream. The conversation only keeps current progress; debug events can be exported from Agent debug trace.`;
 }
 
@@ -257,8 +257,8 @@ function reasoningDetailsCharacterCount(details: string | undefined): number {
 }
 
 function agentPreviewDisclosureLabel(locale: Locale, count: number): string {
-  if (locale === "zh-CN") {
-    return `${count} 张缩略图`;
+  if (locale === "zh-TW") {
+    return `${count} 張縮圖`;
   }
 
   return `${count} ${count === 1 ? "thumbnail" : "thumbnails"}`;
@@ -435,8 +435,22 @@ function preloadPromptPoolPage(): void {
   void loadPromptPoolPageModule();
 }
 
+type ProjectRecordsPageModule = { default: typeof import("../projects/ProjectRecordsPage").ProjectRecordsPage };
+let projectRecordsPageModulePromise: Promise<ProjectRecordsPageModule> | undefined;
+
+function loadProjectRecordsPageModule(): Promise<ProjectRecordsPageModule> {
+  projectRecordsPageModulePromise ??= import("../projects/ProjectRecordsPage").then((module) => ({ default: module.ProjectRecordsPage }));
+  return projectRecordsPageModulePromise;
+}
+
+const LazyProjectRecordsPage = lazy(loadProjectRecordsPageModule);
+
+function preloadProjectRecordsPage(): void {
+  void loadProjectRecordsPageModule();
+}
+
 type PersistedSnapshot = TLEditorSnapshot | TLStoreSnapshot;
-type AppRoute = "home" | "canvas" | "pool" | "gallery";
+type AppRoute = "home" | "canvas" | "pool" | "gallery" | "projects";
 type SaveStatus = "loading" | "saved" | "pending" | "saving" | "error";
 type GenerationMode = "text" | "reference";
 type PanelTab = "manual" | "agent";
@@ -763,6 +777,10 @@ function routeFromLocation(): AppRoute {
     return "pool";
   }
 
+  if (window.location.pathname === "/projects") {
+    return "projects";
+  }
+
   return window.location.pathname === "/gallery" ? "gallery" : "home";
 }
 
@@ -773,6 +791,10 @@ function pathForRoute(route: AppRoute): string {
 
   if (route === "pool") {
     return "/pool";
+  }
+
+  if (route === "projects") {
+    return "/projects";
   }
 
   return route === "gallery" ? "/gallery" : "/";
@@ -3408,13 +3430,15 @@ function TopNavigation({
   route,
   onNavigate,
   onPreloadGallery,
-  onPreloadPool
+  onPreloadPool,
+  onPreloadProjects
 }: {
   onOpenProviderConfig: () => void;
   route: AppRoute;
   onNavigate: (route: AppRoute) => void;
   onPreloadGallery: () => void;
   onPreloadPool: () => void;
+  onPreloadProjects: () => void;
 }) {
   const { t } = useI18n();
 
@@ -3490,6 +3514,22 @@ function TopNavigation({
               <ImageIcon className="size-4" aria-hidden="true" />
               {t("navGallery")}
             </a>
+            <a
+              aria-current={route === "projects" ? "page" : undefined}
+              className="top-navigation__link"
+              data-active={route === "projects"}
+              data-testid="nav-projects"
+              href="/projects"
+              onFocus={onPreloadProjects}
+              onMouseEnter={onPreloadProjects}
+              onClick={(event) => {
+                event.preventDefault();
+                onNavigate("projects");
+              }}
+            >
+              <FileText className="size-4" aria-hidden="true" />
+              {t("navProjects")}
+            </a>
           </nav>
           <LanguageSwitcher />
           <button
@@ -3523,7 +3563,7 @@ function LanguageSwitcher() {
           type="button"
           onClick={() => setLocale(item)}
         >
-          {item === "zh-CN" ? t("languageZh") : t("languageEn")}
+          {item === "zh-TW" ? t("languageZh") : t("languageEn")}
         </button>
       ))}
     </div>
@@ -6053,8 +6093,8 @@ export function App() {
 
   function upsertAgentThinkingSummary(runId?: string): void {
     const content =
-      locale === "zh-CN"
-        ? "正在分析任务，整理生图计划与确认节点。"
+      locale === "zh-TW"
+        ? "正在分析任務，整理生圖計劃與確認節點。"
         : "Reviewing the request and shaping a generation plan with confirmation steps.";
     setAgentMessages((messages) => {
       for (let index = messages.length - 1; index >= 0; index -= 1) {
@@ -7123,13 +7163,14 @@ export function App() {
   }
 
   return (
-    <div className="app-root" data-canvas-theme={route !== "home" && route !== "pool" && isCanvasDarkMode ? "dark" : "light"}>
+    <div className="app-root" data-canvas-theme={route !== "home" && route !== "pool" && route !== "projects" && isCanvasDarkMode ? "dark" : "light"}>
       <TopNavigation
         route={route}
         onNavigate={navigateToRoute}
         onOpenProviderConfig={() => setIsProviderConfigDialogOpen(true)}
         onPreloadGallery={preloadGalleryPage}
         onPreloadPool={preloadPromptPoolPage}
+        onPreloadProjects={preloadProjectRecordsPage}
       />
       {route === "home" ? (
         <HomePage
@@ -8752,6 +8793,20 @@ export function App() {
           }
         >
           <LazyGalleryPage onDeleted={removeGalleryOutputFromHistory} onReuse={reuseGalleryImage} />
+        </Suspense>
+      ) : null}
+      {route === "projects" ? (
+        <Suspense
+          fallback={
+            <main className="project-records-page app-view" data-testid="project-records-loading-page">
+              <div className="project-records-detail-empty" role="status">
+                <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+                <p>{t("projectRecordsLoading")}</p>
+              </div>
+            </main>
+          }
+        >
+          <LazyProjectRecordsPage />
         </Suspense>
       ) : null}
     </div>

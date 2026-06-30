@@ -470,19 +470,19 @@ function smokePlannerConversationContextPrompt(): void {
   expect(content.includes("Resolved follow-up image references from previous Agent outputs"), "planner prompt explains resolved references");
 
   const clarificationMessage = buildPlannerUserMessage({
-    userText: "新的设计图",
+    userText: "新的設計圖",
     defaults,
     selectedReferences: [],
     supportsVision: false,
     conversationContext: {
-      previousUserText: "在原图上加一行标题。"
+      previousUserText: "在原圖上加一行標題。"
     }
   });
   const clarificationContent =
     typeof clarificationMessage.content === "string"
       ? clarificationMessage.content
       : String(clarificationMessage.content.find((block) => block.type === "text")?.text ?? "");
-  expect(clarificationContent.includes("Previous user request: 在原图上加一行标题。"), "clarification prompt keeps previous request");
+  expect(clarificationContent.includes("Previous user request: 在原圖上加一行標題。"), "clarification prompt keeps previous request");
   expect(
     clarificationContent.includes("Create a new standalone design image for the previous request"),
     "clarification prompt explains new-design intent"
@@ -905,7 +905,7 @@ async function smokeCustomLoadoutSkillIsInjected(): Promise<void> {
 
 async function smokePlannerQuestionOutput(): Promise<void> {
   const result = await createGenerationPlan({
-    userText: "在原图上加一行标题。",
+    userText: "在原圖上加一行標題。",
     defaults,
     selectedReferences: [],
     llmConfig: llmConfigFixture(),
@@ -924,7 +924,7 @@ async function smokePlannerQuestionOutput(): Promise<void> {
 
 async function smokeMissingSelectedReferenceQuestion(): Promise<void> {
   const result = await createGenerationPlan({
-    userText: "在原图上加一行标题。",
+    userText: "在原圖上加一行標題。",
     defaults,
     selectedReferences: [],
     llmConfig: llmConfigFixture(),
@@ -938,7 +938,7 @@ async function smokeMissingSelectedReferenceQuestion(): Promise<void> {
 
 async function smokeStandaloneTextImageWithImageCopyDoesNotRequireReference(): Promise<void> {
   const result = await createGenerationPlan({
-    userText: "生成一张新品海报，图上加标题和卖点文案。",
+    userText: "生成一張新品海報，圖上加標題和賣點文案。",
     defaults,
     selectedReferences: [],
     llmConfig: llmConfigFixture(),
@@ -979,7 +979,7 @@ async function smokeStandalonePromptQuestionReflectsToPlan(): Promise<void> {
     })
   ]);
   const result = await createGenerationPlan({
-    userText: "生成一张新品海报，图上加标题和卖点文案。",
+    userText: "生成一張新品海報，圖上加標題和賣點文案。",
     defaults,
     selectedReferences: [],
     llmConfig: llmConfigFixture(),
@@ -993,7 +993,7 @@ async function smokeStandalonePromptQuestionReflectsToPlan(): Promise<void> {
 
 async function smokeSelectedEditPlanWithoutReferenceQuestion(): Promise<void> {
   const result = await createGenerationPlan({
-    userText: "给每张图配上文字，更有设计感。",
+    userText: "給每張圖配上文字，更有設計感。",
     defaults,
     selectedReferences: selectedReferencesTwo(),
     llmConfig: llmConfigFixture(),
@@ -1013,7 +1013,7 @@ async function smokeSelectedEditPlanWithoutReferenceQuestion(): Promise<void> {
 
 async function smokeSelectedQuestionOutputFallbackPlan(): Promise<void> {
   const result = await createGenerationPlan({
-    userText: "给每张图配上文字，更有设计感。",
+    userText: "給每張圖配上文字，更有設計感。",
     defaults,
     selectedReferences: selectedReferencesTwo(),
     llmConfig: llmConfigFixture(),
@@ -1033,7 +1033,7 @@ async function smokeSelectedQuestionOutputFallbackPlan(): Promise<void> {
 
 async function smokePerImageSelectedReferencePlan(): Promise<void> {
   const result = await createGenerationPlan({
-    userText: "给每张图配上文字，更有设计感。",
+    userText: "給每張圖配上文字，更有設計感。",
     defaults,
     selectedReferences: selectedReferencesTwo(),
     llmConfig: llmConfigFixture(),
@@ -1077,7 +1077,7 @@ async function smokePerImageSelectedReferencePlan(): Promise<void> {
 async function smokeBatchSelectedReferenceFallbackUsesAllReferences(): Promise<void> {
   const references = selectedReferencesMany(10);
   const result = await createGenerationPlan({
-    userText: "让所有图里面的文案字体统一。",
+    userText: "讓所有圖裡面的文案字體統一。",
     defaults,
     selectedReferences: references,
     llmConfig: llmConfigFixture(),
@@ -1284,7 +1284,7 @@ async function smokePlannerReflectsOnDroppedExplicitCount(): Promise<void> {
 
 async function smokeSingleCombinedSelectedReferenceLimitQuestion(): Promise<void> {
   const result = await createGenerationPlan({
-    userText: "把所有图合成一张海报。",
+    userText: "把所有圖合成一張海報。",
     defaults,
     selectedReferences: selectedReferencesMany(4),
     llmConfig: llmConfigFixture(),
@@ -1299,7 +1299,7 @@ async function smokeSingleCombinedSelectedReferenceLimitQuestion(): Promise<void
 
 async function smokeRecentOutputEditWithoutReferencesStillAsks(): Promise<void> {
   const result = await createGenerationPlan({
-    userText: "让刚刚生成的所有图里面的文案字体统一。",
+    userText: "讓剛剛生成的所有圖裡面的文案字體統一。",
     defaults,
     selectedReferences: [],
     llmConfig: llmConfigFixture(),
@@ -1313,7 +1313,7 @@ async function smokeRecentOutputEditWithoutReferencesStillAsks(): Promise<void> 
 
 async function smokeCombinedSelectedReferencePlan(): Promise<void> {
   const result = await createGenerationPlan({
-    userText: "把两张图组合成一张旅行海报，加上标题。",
+    userText: "把兩張圖組合成一張旅行海報，加上標題。",
     defaults,
     selectedReferences: selectedReferencesTwo(),
     llmConfig: llmConfigFixture(),

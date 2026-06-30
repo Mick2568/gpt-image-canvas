@@ -45,7 +45,7 @@ export async function createConfiguredImageProvider(signal?: AbortSignal): Promi
 
   throw new ProviderError(
     "missing_provider",
-    "服务器没有配置 OPENAI_API_KEY，也没有可用的 Codex 登录会话。请先登录 Codex 后重试。",
+    "伺服器沒有設定 OPENAI_API_KEY，也沒有可用的 Codex 登入工作階段。請先登入 Codex 後重試。",
     401
   );
 }

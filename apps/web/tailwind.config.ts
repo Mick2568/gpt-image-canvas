@@ -6,7 +6,7 @@ export default {
     extend: {
       fontFamily: {
         sans: [
-          "Noto Sans SC",
+          "Noto Sans TC",
           "ui-sans-serif",
           "system-ui",
           "-apple-system",

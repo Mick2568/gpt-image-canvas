@@ -72,7 +72,7 @@ export async function startCodexDeviceLogin(signal?: AbortSignal): Promise<Codex
   });
 
   if (!parsed) {
-    throw new ProviderError("unsupported_provider_behavior", "Codex 登录服务返回内容无法识别。", 502);
+    throw new ProviderError("unsupported_provider_behavior", "Codex 登入服務回傳內容無法識別。", 502);
   }
 
   return parsed;
@@ -99,7 +99,7 @@ export async function pollCodexDeviceLogin(
     signal: timeout.signal
   })
     .catch((error: unknown) => {
-      throw fetchFailureToProviderError(error, "Codex 登录服务暂时不可用。");
+      throw fetchFailureToProviderError(error, "Codex 登入服務暫時不可用。");
     })
     .finally(timeout.cleanup);
 
@@ -125,7 +125,7 @@ export async function pollCodexDeviceLogin(
   }
 
   if (parsed.status !== "authorized") {
-    throw new ProviderError("upstream_failure", "Codex 登录轮询失败，请稍后重试。", providerHttpStatus(response.status));
+    throw new ProviderError("upstream_failure", "Codex 登入輪詢失敗，請稍後重試。", providerHttpStatus(response.status));
   }
 
   const tokens = await exchangeAuthorizationCodeForTokens(issuer, parsed.exchange.authorizationCode, parsed.exchange.codeVerifier, signal);
@@ -185,7 +185,7 @@ function storeCodexTokens(payload: unknown, fallback?: CodexTokenRow): CodexToke
   });
 
   if (!parsed) {
-    throw new ProviderError("unsupported_provider_behavior", "Codex 登录服务没有返回完整令牌。", 502);
+    throw new ProviderError("unsupported_provider_behavior", "Codex 登入服務沒有回傳完整權杖。", 502);
   }
 
   const createdAt = fallback?.createdAt ?? now.toISOString();
@@ -246,7 +246,7 @@ async function refreshCodexToken(row: CodexTokenRow, signal?: AbortSignal): Prom
     signal: timeout.signal
   })
     .catch((error: unknown) => {
-      throw fetchFailureToProviderError(error, "Codex 登录刷新失败，请稍后重试。");
+      throw fetchFailureToProviderError(error, "Codex 登入重新整理失敗，請稍後重試。");
     })
     .finally(timeout.cleanup);
 
@@ -257,7 +257,7 @@ async function refreshCodexToken(row: CodexTokenRow, signal?: AbortSignal): Prom
       return undefined;
     }
 
-    throw new ProviderError("upstream_failure", "Codex 登录刷新失败，请稍后重试。", providerHttpStatus(response.status));
+    throw new ProviderError("upstream_failure", "Codex 登入重新整理失敗，請稍後重試。", providerHttpStatus(response.status));
   }
 
   const payload = await response.json().catch(() => undefined);
@@ -288,16 +288,16 @@ async function exchangeAuthorizationCodeForTokens(
     signal: timeout.signal
   })
     .catch((error: unknown) => {
-      throw fetchFailureToProviderError(error, "Codex 登录换取令牌失败。");
+      throw fetchFailureToProviderError(error, "Codex 登入換取權杖失敗。");
     })
     .finally(timeout.cleanup);
 
   if (!response.ok) {
-    throw new ProviderError("upstream_failure", "Codex 登录换取令牌失败。", providerHttpStatus(response.status));
+    throw new ProviderError("upstream_failure", "Codex 登入換取權杖失敗。", providerHttpStatus(response.status));
   }
 
   return response.json().catch(() => {
-    throw new ProviderError("unsupported_provider_behavior", "Codex 登录令牌响应无法解析。", 502);
+    throw new ProviderError("unsupported_provider_behavior", "Codex 登入權杖回應無法解析。", 502);
   });
 }
 
@@ -308,15 +308,15 @@ async function fetchJson(url: string, init: RequestInit, signal?: AbortSignal): 
       ...init,
       signal: timeout.signal
     }).catch((error: unknown) => {
-      throw fetchFailureToProviderError(error, "Codex 登录服务暂时不可用。");
+      throw fetchFailureToProviderError(error, "Codex 登入服務暫時不可用。");
     });
 
     if (!response.ok) {
-      throw new ProviderError("upstream_failure", "Codex 登录服务请求失败。", providerHttpStatus(response.status));
+      throw new ProviderError("upstream_failure", "Codex 登入服務請求失敗。", providerHttpStatus(response.status));
     }
 
     return response.json().catch(() => {
-      throw new ProviderError("unsupported_provider_behavior", "Codex 登录服务响应无法解析。", 502);
+      throw new ProviderError("unsupported_provider_behavior", "Codex 登入服務回應無法解析。", 502);
     });
   } finally {
     timeout.cleanup();

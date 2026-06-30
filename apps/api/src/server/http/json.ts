@@ -5,7 +5,7 @@ export async function readJson(request: Request): Promise<ParseResult<unknown>> 
   if (contentType && !isJsonContentType(contentType)) {
     return {
       ok: false,
-      error: errorResponse("unsupported_media_type", "请求 Content-Type 必须是 application/json。")
+      error: errorResponse("unsupported_media_type", "請求 Content-Type 必須是 application/json。")
     };
   }
 
@@ -15,14 +15,14 @@ export async function readJson(request: Request): Promise<ParseResult<unknown>> 
   } catch {
     return {
       ok: false,
-      error: errorResponse("invalid_request_body", "请求体读取失败，请重试。")
+      error: errorResponse("invalid_request_body", "要求內容讀取失敗，請重試。")
     };
   }
 
   if (bodyText.trim().length === 0) {
     return {
       ok: false,
-      error: errorResponse("empty_json", "请求体不能为空，必须是有效的 JSON。")
+      error: errorResponse("empty_json", "要求內容不能為空，必須是有效的 JSON。")
     };
   }
 
@@ -34,7 +34,7 @@ export async function readJson(request: Request): Promise<ParseResult<unknown>> 
   } catch {
     return {
       ok: false,
-      error: errorResponse("invalid_json", "请求体必须是有效的 JSON。")
+      error: errorResponse("invalid_json", "要求內容必須是有效的 JSON。")
     };
   }
 }

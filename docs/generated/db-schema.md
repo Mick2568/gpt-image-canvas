@@ -126,6 +126,56 @@ Stores local Agent conversation history and resumable context snapshots.
 | `created_at` | text | Required ISO timestamp. |
 | `updated_at` | text | Required ISO timestamp; indexed for latest-first history. |
 
+## `creative_projects`
+
+Stores local creative-production buckets such as the seeded `MavoSport` project.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | text | Primary key. |
+| `slug` | text | Required stable slug; unique index. |
+| `name` | text | Required display name. |
+| `description` | text | Required project description. |
+| `created_at` | text | Required ISO timestamp. |
+| `updated_at` | text | Required ISO timestamp. |
+
+## `project_records`
+
+Stores local project records for prompts, image sets, video plans, and asset packages.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | text | Primary key. |
+| `project_id` | text | Required reference to `creative_projects.id`; cascades on delete. |
+| `title` | text | Required record title. |
+| `type` | text | Required record type (`prompt`, `image_set`, `video_plan`, or `asset_package`). |
+| `stage` | text | Required workflow stage (`prompt`, `reference`, `image`, `curation`, `video`, or `export`). |
+| `status` | text | Required record status (`draft`, `active`, `ready`, or `archived`). |
+| `brief_json` | text | Required serialized brief JSON. |
+| `prompt` | text | Required prompt text; may be empty. |
+| `notes` | text | Required notes text; may be empty. |
+| `created_at` | text | Required ISO timestamp. |
+| `updated_at` | text | Required ISO timestamp; indexed for latest-first records. |
+
+## `project_record_links`
+
+Stores linked generation, output, asset, reference, prompt favorite, and manifest records plus curation status.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | text | Primary key. |
+| `record_id` | text | Required reference to `project_records.id`; cascades on delete. |
+| `link_type` | text | Required link type (`generation`, `output`, `asset`, `reference`, `prompt_favorite`, or `manifest`). |
+| `target_id` | text | Optional target identifier stored as a non-null empty string when unused. |
+| `target_path` | text | Optional local path or manifest path stored as a non-null empty string when unused. |
+| `title` | text | Required link title; may be empty. |
+| `curation_status` | text | Required curation status (`usable`, `rejected`, `needs_regeneration`, or `reference_only`). |
+| `reject_reasons_json` | text | Required serialized reject reason array. Rejected links must contain at least one reason. |
+| `notes` | text | Required link notes; may be empty. |
+| `metadata_json` | text | Required serialized metadata JSON. |
+| `created_at` | text | Required ISO timestamp. |
+| `updated_at` | text | Required ISO timestamp. |
+
 ## `codex_oauth_tokens`
 
 Stores local Codex OAuth session state.
@@ -199,4 +249,5 @@ Stores multiple reference assets used by one generation.
 - `generation_outputs.asset_id` optionally references `assets.id`.
 - `generation_reference_assets.generation_id` references `generation_records.id` with cascade delete.
 - `generation_reference_assets.asset_id` references `assets.id`.
-
+- `project_records.project_id` references `creative_projects.id` with cascade delete.
+- `project_record_links.record_id` references `project_records.id` with cascade delete.
