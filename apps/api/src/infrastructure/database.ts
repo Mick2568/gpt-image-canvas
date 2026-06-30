@@ -172,6 +172,44 @@ CREATE TABLE IF NOT EXISTS prompt_favorites (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS creative_projects (
+  id TEXT PRIMARY KEY NOT NULL,
+  slug TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS project_records (
+  id TEXT PRIMARY KEY NOT NULL,
+  project_id TEXT NOT NULL REFERENCES creative_projects(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  type TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  status TEXT NOT NULL,
+  brief_json TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  notes TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS project_record_links (
+  id TEXT PRIMARY KEY NOT NULL,
+  record_id TEXT NOT NULL REFERENCES project_records(id) ON DELETE CASCADE,
+  link_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  target_path TEXT NOT NULL,
+  title TEXT NOT NULL,
+  curation_status TEXT NOT NULL,
+  reject_reasons_json TEXT NOT NULL,
+  notes TEXT NOT NULL,
+  metadata_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS codex_oauth_tokens (
   id TEXT PRIMARY KEY NOT NULL,
   access_token TEXT,
@@ -231,6 +269,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS agent_skills_slug_idx ON agent_skills(slug);
 CREATE UNIQUE INDEX IF NOT EXISTS prompt_favorites_source_idx ON prompt_favorites(source_type, source_id);
 CREATE INDEX IF NOT EXISTS prompt_favorites_group_id_idx ON prompt_favorites(group_id);
 CREATE INDEX IF NOT EXISTS prompt_favorites_last_used_at_idx ON prompt_favorites(last_used_at);
+CREATE UNIQUE INDEX IF NOT EXISTS creative_projects_slug_idx ON creative_projects(slug);
+CREATE INDEX IF NOT EXISTS project_records_project_id_idx ON project_records(project_id);
+CREATE INDEX IF NOT EXISTS project_records_updated_at_idx ON project_records(updated_at);
+CREATE INDEX IF NOT EXISTS project_record_links_record_id_idx ON project_record_links(record_id);
+CREATE INDEX IF NOT EXISTS project_record_links_target_idx ON project_record_links(link_type, target_id);
 `);
 
 ensureColumn("assets", "cloud_provider", "cloud_provider TEXT");
@@ -284,6 +327,7 @@ backfillGenerationReferenceAssets();
 ensureProviderConfigRow();
 ensureAgentLlmConfigRow();
 ensurePromptFavoriteDefaultGroup();
+ensureMavoSportCreativeProject();
 
 export const db = drizzle(sqlite, { schema });
 
@@ -399,4 +443,14 @@ function ensurePromptFavoriteDefaultGroup(): void {
        VALUES (?, ?, ?, ?, ?)`
     )
     .run("default", "常用", 0, now, now);
+}
+
+function ensureMavoSportCreativeProject(): void {
+  const now = new Date().toISOString();
+  sqlite
+    .prepare(
+      `INSERT OR IGNORE INTO creative_projects (id, slug, name, description, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .run("mavosport", "mavosport", "MavoSport", "MavoSport 圖片 → 影片 reference 創作紀錄", now, now);
 }
