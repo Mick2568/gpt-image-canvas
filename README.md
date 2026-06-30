@@ -1,6 +1,6 @@
 # GPT Image Canvas
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](README.md) | [繁體中文](README.zh-TW.md)
 
 Local AI image canvas for prompt-to-image generation, reference-image generation, and multi-step Agent planning. It combines tldraw, Hono, SQLite, and GPT Image 2 into a local-first creative workspace.
 
@@ -79,11 +79,11 @@ CODEX_RESPONSES_MODEL=gpt-5.5
 Leave `OPENAI_BASE_URL` empty for the official OpenAI API. Set it to an OpenAI-compatible `/v1` endpoint when using another provider, and set `OPENAI_IMAGE_MODEL` if that endpoint expects a different image model name.
 When using Codex login, `CODEX_RESPONSES_MODEL` controls the mainline Responses model for the ChatGPT OAuth bridge; `OPENAI_IMAGE_MODEL` remains the image-generation tool model.
 
-You can also open the top-right `配置` dialog and save one local OpenAI-compatible provider. Local keys are stored in SQLite under `DATA_DIR`, returned only as masked values, and preserved until you enter a replacement key.
+You can also open the top-right `設定` dialog and save one local OpenAI-compatible provider. Local keys are stored in SQLite under `DATA_DIR`, returned only as masked values, and preserved until you enter a replacement key.
 
 ## Routes
 
-- `/` is the credential-aware homepage. It offers `Codex 登录` and `接入 API` when no provider is available.
+- `/` is the credential-aware homepage. It offers `Codex 登入` and `連線 API` when no provider is available.
 - `/canvas` is the working canvas. Without a provider, it redirects back to `/`.
 - `/pool` is the bundled Prompt Pool for browsing, searching, favoriting, copying, and reusing curated prompts.
 - `/gallery` remains available even without credentials, so local work can still be viewed.
@@ -231,7 +231,7 @@ If a real API key was ever committed, rotate the key. Git ignore rules prevent f
 
 ## Troubleshooting
 
-- Missing provider: add `OPENAI_API_KEY` to `.env` and restart, save a local provider from `配置`, or complete `Codex 登录`.
+- Missing provider: add `OPENAI_API_KEY` to `.env` and restart, save a local provider from `設定`, or complete `Codex 登入`.
 - Codex login fails: confirm the machine can reach `https://auth.openai.com`, keep the login dialog open, and restart the flow if the user code expires.
 - Custom endpoint fails: confirm `OPENAI_BASE_URL` points to an OpenAI-compatible `/v1` endpoint and supports the configured image model.
 - Agent cannot plan: save the Agent LLM config separately from the image provider config. If `supportsVision` is enabled and the request fails, try fewer or smaller selected images.
@@ -281,4 +281,4 @@ MIT
 
 ## Friendly Links
 
-- [LINUX DO - 新的理想型社区](https://linux.do/)
+- [LINUX DO - 新的理想型社區](https://linux.do/)

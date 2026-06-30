@@ -239,7 +239,7 @@ async function smokeAgentConversations(
 
   store.saveAgentConversationContext("agent-conversation-context-smoke", {
     previousUserText: "Make the previous image warmer.",
-    pendingUserText: "在原图上加一行标题。",
+    pendingUserText: "在原圖上加一行標題。",
     previousPlan: {
       schemaVersion: 1,
       id: "context-plan-smoke",
@@ -273,7 +273,7 @@ async function smokeAgentConversations(
   } as Parameters<typeof store.saveAgentConversationContext>[1]);
   const context = store.getAgentConversationContext("agent-conversation-context-smoke");
   expect(context?.previousUserText === "Make the previous image warmer.", "Agent conversation context readback keeps user text");
-  expect(context?.pendingUserText === "在原图上加一行标题。", "Agent conversation context readback keeps pending user text");
+  expect(context?.pendingUserText === "在原圖上加一行標題。", "Agent conversation context readback keeps pending user text");
   expect(context.previousOutputs[0]?.assetId === "asset-output-1", "Agent conversation context readback keeps output reference");
   expect(!JSON.stringify(context).includes("data:image"), "Agent conversation context strips dataUrl");
 

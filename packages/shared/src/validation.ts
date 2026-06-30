@@ -45,26 +45,26 @@ export const MAX_IMAGE_ASPECT_RATIO = 3;
 
 export function validateImageSize(size: ImageSize): ValidationResult {
   if (!Number.isInteger(size.width) || !Number.isInteger(size.height)) {
-    return { ok: false, code: "invalid_size", reason: "non_integer", message: "宽度和高度必须是整数。" };
+    return { ok: false, code: "invalid_size", reason: "non_integer", message: "寬度和高度必須是整數。" };
   }
   if (size.width < MIN_IMAGE_DIMENSION || size.height < MIN_IMAGE_DIMENSION) {
-    return { ok: false, code: "invalid_size", reason: "too_small", message: `宽度和高度不能小于 ${MIN_IMAGE_DIMENSION}px。` };
+    return { ok: false, code: "invalid_size", reason: "too_small", message: `寬度和高度不能小於 ${MIN_IMAGE_DIMENSION}px。` };
   }
   if (size.width > MAX_IMAGE_DIMENSION || size.height > MAX_IMAGE_DIMENSION) {
-    return { ok: false, code: "invalid_size", reason: "too_large", message: `宽度和高度不能大于 ${MAX_IMAGE_DIMENSION}px。` };
+    return { ok: false, code: "invalid_size", reason: "too_large", message: `寬度和高度不能大於 ${MAX_IMAGE_DIMENSION}px。` };
   }
   if (size.width % IMAGE_SIZE_MULTIPLE !== 0 || size.height % IMAGE_SIZE_MULTIPLE !== 0) {
-    return { ok: false, code: "invalid_size", reason: "not_multiple", message: `宽度和高度必须是 ${IMAGE_SIZE_MULTIPLE}px 的倍数。` };
+    return { ok: false, code: "invalid_size", reason: "not_multiple", message: `寬度和高度必須是 ${IMAGE_SIZE_MULTIPLE}px 的倍數。` };
   }
   if (Math.max(size.width, size.height) / Math.min(size.width, size.height) > MAX_IMAGE_ASPECT_RATIO) {
-    return { ok: false, code: "invalid_size", reason: "aspect_ratio", message: `长边和短边比例不能超过 ${MAX_IMAGE_ASPECT_RATIO}:1。` };
+    return { ok: false, code: "invalid_size", reason: "aspect_ratio", message: `長邊和短邊比例不能超過 ${MAX_IMAGE_ASPECT_RATIO}:1。` };
   }
   if (size.width * size.height < MIN_TOTAL_PIXELS) {
     return {
       ok: false,
       code: "invalid_size",
       reason: "total_pixels_too_small",
-      message: `总像素不能小于 ${MIN_TOTAL_PIXELS.toLocaleString()}。`
+      message: `總像素不能小於 ${MIN_TOTAL_PIXELS.toLocaleString()}。`
     };
   }
   if (size.width * size.height > MAX_TOTAL_PIXELS) {
@@ -72,7 +72,7 @@ export function validateImageSize(size: ImageSize): ValidationResult {
       ok: false,
       code: "invalid_size",
       reason: "total_pixels_too_large",
-      message: `总像素不能超过 ${MAX_TOTAL_PIXELS.toLocaleString()}。`
+      message: `總像素不能超過 ${MAX_TOTAL_PIXELS.toLocaleString()}。`
     };
   }
   return { ok: true };
@@ -97,7 +97,7 @@ export function validateSceneImageSize(input: {
       ok: false,
       code: "invalid_size_preset",
       reason: "unsupported_preset",
-      message: "不支持的场景尺寸预设。"
+      message: "不支援的場景尺寸預設。"
     };
   }
 

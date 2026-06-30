@@ -341,8 +341,8 @@ export async function createGenerationPlan(input: AgentPlannerInput): Promise<Ag
   ): Promise<AgentPlannerFailure | { ok: true; agentResult: unknown }> => {
     emitAssistantDelta(input.onAssistantDelta, [
       attemptIndex === 0
-        ? "我会先把你的需求整理成可执行的图像计划。"
-        : "上一次规划没有通过校验，我会让 Agent 反思后重写一次。",
+        ? "我會先把你的需求整理成可執行的圖片計劃。"
+        : "上一次規劃沒有通過校驗，我會讓 Agent 反思後重寫一次。",
       " "
     ]);
     const runnerOptions: NonNullable<Parameters<GenerationPlanAgentRunner["invoke"]>[1]> = {
@@ -407,7 +407,7 @@ export async function createGenerationPlan(input: AgentPlannerInput): Promise<Ag
     });
 
     if (evaluation.ok) {
-      emitAssistantDelta(input.onAssistantDelta, ["计划已生成，请在对话卡片中检查细节并确认执行。"]);
+      emitAssistantDelta(input.onAssistantDelta, ["計劃已生成，請在對話卡片中檢查細節並確認執行。"]);
       return {
         ok: true,
         plan: evaluation.plan
@@ -1734,13 +1734,13 @@ function selectedReferenceEditIntent(userText: string, selectedReferenceCount: n
     selectedReferenceCount > 0 || hasExplicitExistingImageTarget(text) || hasReferenceImageLanguage(text);
   const hasCreativeReferenceAction = hasCreativeSelectedReferenceIntent(text);
   const hasEditAction =
-    /编辑|修改|调整|改成|改为|优化|润色|重绘|修图|保留|基于|基础上|加字|加上字|加文字|配字|配上字|配文字|配上文字|配文|文案|标题|字幕|字标|字体|排版|贴字|一致|统一|edit|modify|retouch|polish|redesign|based on|from the original|add text|text overlay|caption|title|typography|copy|font|consistent|unify/u.test(text);
+    /編輯|修改|調整|改成|改為|優化|潤色|重繪|修圖|保留|基於|基礎上|加字|加上字|加文字|配字|配上字|配文字|配上文字|配文|文案|標題|字幕|字標|字體|排版|貼字|一致|統一|edit|modify|retouch|polish|redesign|based on|from the original|add text|text overlay|caption|title|typography|copy|font|consistent|unify/u.test(text);
   const requiresEverySelectedReference =
-    /每张|每一张|每个|每一个|所有选中|全部选中|所有图|全部图|each image|every image|all selected|all images|for each/u.test(text);
+    /每張|每一張|每個|每一個|所有選中|全部選中|所有圖|全部圖|each image|every image|all selected|all images|for each/u.test(text);
   const allowsCombinedReferences =
-    /组合|合成|拼贴|拼成|融合|放在一起|对比|一张海报|combine|merge|collage|montage|together|one poster|single poster|comparison/u.test(text);
+    /組合|合成|拼貼|拼成|融合|放在一起|對比|一張海報|combine|merge|collage|montage|together|one poster|single poster|comparison/u.test(text);
   const requiresSingleCombinedOutput =
-    /合成一张|拼成一张|做成一张|一张图|一张海报|one image|single image|one poster|single poster/u.test(text);
+    /合成一張|拼成一張|做成一張|一張圖|一張海報|one image|single image|one poster|single poster/u.test(text);
 
   return {
     requiresSelectedImageEdit: hasSelectedContext && (hasEditAction || allowsCombinedReferences || hasCreativeReferenceAction),
@@ -1752,7 +1752,7 @@ function selectedReferenceEditIntent(userText: string, selectedReferenceCount: n
 }
 
 function hasExplicitExistingImageTarget(text: string): boolean {
-  return /原图|原始图|原始图片|原本|选中|所选|当前图|当前图片|这张图|这张图片|这些图|这些图片|刚刚生成|刚才生成|上一轮|上次生成|之前生成|selected image|selected images|selected original|selected originals|original image|original images|source image|source images|current image|current images|this image|these images|previous output|previous outputs|latest output|latest outputs|generated output|generated outputs/u.test(
+  return /原圖|原始圖|原始圖片|原本|選中|所選|目前圖|目前圖片|這張圖|這張圖片|這些圖|這些圖片|剛剛生成|剛才生成|上一輪|上次生成|之前生成|selected image|selected images|selected original|selected originals|original image|original images|source image|source images|current image|current images|this image|these images|previous output|previous outputs|latest output|latest outputs|generated output|generated outputs/u.test(
     text
   );
 }
@@ -2569,7 +2569,7 @@ function formatClarificationFollowUpSummary(
 function agentClarificationIntent(userText: string): "new_design" | "edit_original" | undefined {
   const text = normalizeIntentText(userText);
   if (
-    /新的设计图|新设计图|生成新图|生成新的|重新生成|独立生成|文生图|不是编辑|不编辑原图|不用原图|不需要原图|无需原图|new design|new image|generate new|standalone|text to image/u.test(
+    /新的設計圖|新設計圖|生成新圖|生成新的|重新生成|獨立生成|文生圖|不是編輯|不編輯原圖|不用原圖|不需要原圖|無需原圖|new design|new image|generate new|standalone|text to image/u.test(
       text
     )
   ) {
@@ -2577,7 +2577,7 @@ function agentClarificationIntent(userText: string): "new_design" | "edit_origin
   }
 
   if (
-    /编辑原图|直接编辑|改原图|修改原图|用原图|基于原图|选中的原图|edit original|edit selected|use selected|use original/u.test(
+    /編輯原圖|直接編輯|改原圖|修改原圖|用原圖|基於原圖|選中的原圖|edit original|edit selected|use selected|use original/u.test(
       text
     )
   ) {

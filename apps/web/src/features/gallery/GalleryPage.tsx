@@ -7,6 +7,7 @@ import {
   Copy,
   Download,
   Check,
+  FolderPlus,
   ImageIcon,
   Loader2,
   Maximize2,
@@ -21,12 +22,20 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  PROJECT_RECORD_CURATION_STATUSES,
+  PROJECT_RECORD_REJECT_REASONS,
   SIZE_PRESETS,
   STYLE_PRESETS,
+  type CreateProjectRecordLinkRequest,
+  type CreativeProject,
+  type CreativeProjectDetailResponse,
+  type CreativeProjectsResponse,
   type GalleryBatchDeleteRequest,
   type GalleryExportRequest,
   type GalleryImageItem,
-  type GalleryResponse
+  type GalleryResponse,
+  type ProjectRecordCurationStatus,
+  type ProjectRecordRejectReason
 } from "@gpt-image-canvas/shared";
 import { localizedApiErrorMessage, useI18n, type Locale, type Translate } from "../../shared/i18n";
 import { assetDownloadUrl, assetPreviewUrl } from "../../shared/api/assets";
@@ -37,6 +46,7 @@ interface GalleryPageProps {
 }
 
 interface GalleryActionHandlers {
+  onAddToRecord: (item: GalleryImageItem) => void;
   onCopy: (item: GalleryImageItem) => void;
   onDelete: (item: GalleryImageItem) => void;
   onDownload: (item: GalleryImageItem) => void;
@@ -58,6 +68,18 @@ export function GalleryPage({ onDeleted, onReuse }: GalleryPageProps) {
   const [statusMessage, setStatusMessage] = useState("");
   const [expandedPrompts, setExpandedPrompts] = useState<Record<string, boolean>>({});
   const [selectedItem, setSelectedItem] = useState<GalleryImageItem | null>(null);
+  const [recordDialogItem, setRecordDialogItem] = useState<GalleryImageItem | null>(null);
+  const [recordDialogProjects, setRecordDialogProjects] = useState<CreativeProject[]>([]);
+  const [recordDialogProjectDetail, setRecordDialogProjectDetail] = useState<CreativeProjectDetailResponse | null>(null);
+  const [recordDialogProjectId, setRecordDialogProjectId] = useState("mavosport");
+  const [recordDialogRecordId, setRecordDialogRecordId] = useState("");
+  const [recordDialogCurationStatus, setRecordDialogCurationStatus] =
+    useState<ProjectRecordCurationStatus>("needs_regeneration");
+  const [recordDialogRejectReasons, setRecordDialogRejectReasons] = useState<ProjectRecordRejectReason[]>([]);
+  const [recordDialogNotes, setRecordDialogNotes] = useState("");
+  const [isRecordDialogLoading, setIsRecordDialogLoading] = useState(false);
+  const [isRecordDialogSaving, setIsRecordDialogSaving] = useState(false);
+  const [recordDialogError, setRecordDialogError] = useState("");
   const [pendingDeleteItem, setPendingDeleteItem] = useState<GalleryImageItem | null>(null);
   const [deletingOutputId, setDeletingOutputId] = useState<string | null>(null);
   const [pendingBulkDelete, setPendingBulkDelete] = useState(false);
@@ -111,7 +133,7 @@ export function GalleryPage({ onDeleted, onReuse }: GalleryPageProps) {
   }, [locale, t]);
 
   useEffect(() => {
-    if (!selectedItem && !pendingDeleteItem && !pendingBulkDelete) {
+    if (!selectedItem && !recordDialogItem && !pendingDeleteItem && !pendingBulkDelete) {
       return;
     }
 
@@ -121,6 +143,11 @@ export function GalleryPage({ onDeleted, onReuse }: GalleryPageProps) {
       }
 
       event.preventDefault();
+      if (recordDialogItem) {
+        closeRecordDialog();
+        return;
+      }
+
       if (pendingDeleteItem) {
         setPendingDeleteItem(null);
         return;
@@ -138,7 +165,7 @@ export function GalleryPage({ onDeleted, onReuse }: GalleryPageProps) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [pendingBulkDelete, pendingDeleteItem, selectedItem]);
+  }, [pendingBulkDelete, pendingDeleteItem, recordDialogItem, selectedItem]);
 
   useEffect(() => {
     return () => {
@@ -165,6 +192,7 @@ export function GalleryPage({ onDeleted, onReuse }: GalleryPageProps) {
   const featuredItem = filteredItems[0] ?? null;
   const gridItems = featuredItem ? filteredItems.slice(1) : filteredItems;
   const actionHandlers: GalleryActionHandlers = {
+    onAddToRecord: requestAddToRecord,
     onCopy: (item) => void copyPrompt(item),
     onDelete: requestDelete,
     onDownload: downloadItem,
@@ -362,6 +390,145 @@ export function GalleryPage({ onDeleted, onReuse }: GalleryPageProps) {
     showStatus(t("galleryOpenDownload"));
   }
 
+  function requestAddToRecord(item: GalleryImageItem): void {
+    setRecordDialogItem(item);
+    setRecordDialogProjects([]);
+    setRecordDialogProjectDetail(null);
+    setRecordDialogProjectId("mavosport");
+    setRecordDialogRecordId("");
+    setRecordDialogCurationStatus("needs_regeneration");
+    setRecordDialogRejectReasons([]);
+    setRecordDialogNotes("");
+    setRecordDialogError("");
+    void loadRecordDialogProjects();
+  }
+
+  function closeRecordDialog(): void {
+    setRecordDialogItem(null);
+    setRecordDialogError("");
+    setIsRecordDialogSaving(false);
+  }
+
+  async function loadRecordDialogProjects(): Promise<void> {
+    setIsRecordDialogLoading(true);
+    setRecordDialogError("");
+
+    try {
+      const response = await fetch("/api/creative-projects");
+      if (!response.ok) {
+        throw new Error(await readGalleryError(response, locale, t));
+      }
+
+      const body = (await response.json()) as CreativeProjectsResponse;
+      const projects = Array.isArray(body.projects) ? body.projects : [];
+      const preferredProjectId = projects.find((project) => project.slug === "mavosport")?.id ?? projects[0]?.id ?? "mavosport";
+      setRecordDialogProjects(projects);
+      await loadRecordDialogProject(preferredProjectId);
+    } catch (loadError) {
+      setRecordDialogError(loadError instanceof Error ? loadError.message : t("galleryRecordLoadFailed"));
+    } finally {
+      setIsRecordDialogLoading(false);
+    }
+  }
+
+  async function loadRecordDialogProject(projectId: string): Promise<void> {
+    setRecordDialogProjectId(projectId);
+    setRecordDialogRecordId("");
+    setRecordDialogProjectDetail(null);
+    setRecordDialogError("");
+
+    const response = await fetch(`/api/creative-projects/${encodeURIComponent(projectId)}`);
+    if (!response.ok) {
+      throw new Error(await readGalleryError(response, locale, t));
+    }
+
+    const body = (await response.json()) as CreativeProjectDetailResponse;
+    setRecordDialogProjectDetail(body);
+    setRecordDialogRecordId(body.records[0]?.id ?? "");
+  }
+
+  function changeRecordDialogProject(projectId: string): void {
+    setIsRecordDialogLoading(true);
+    void loadRecordDialogProject(projectId)
+      .catch((loadError) => {
+        setRecordDialogError(loadError instanceof Error ? loadError.message : t("galleryRecordLoadFailed"));
+      })
+      .finally(() => {
+        setIsRecordDialogLoading(false);
+      });
+  }
+
+  function updateRecordDialogCurationStatus(curationStatus: ProjectRecordCurationStatus): void {
+    setRecordDialogCurationStatus(curationStatus);
+    if (curationStatus !== "rejected") {
+      setRecordDialogRejectReasons([]);
+    }
+  }
+
+  function toggleRecordDialogRejectReason(reason: ProjectRecordRejectReason): void {
+    setRecordDialogRejectReasons((current) =>
+      current.includes(reason) ? current.filter((item) => item !== reason) : [...current, reason]
+    );
+  }
+
+  async function submitRecordDialog(): Promise<void> {
+    if (!recordDialogItem || !recordDialogRecordId) {
+      return;
+    }
+
+    if (recordDialogCurationStatus === "rejected" && recordDialogRejectReasons.length === 0) {
+      setRecordDialogError(t("galleryRecordRejectReasonRequired"));
+      return;
+    }
+
+    const request: CreateProjectRecordLinkRequest = {
+      linkType: "output",
+      targetId: recordDialogItem.outputId,
+      targetPath: recordDialogItem.asset.url,
+      title: promptExcerpt(recordDialogItem.prompt),
+      curationStatus: recordDialogCurationStatus,
+      rejectReasons: recordDialogRejectReasons,
+      notes: recordDialogNotes,
+      metadataJson: JSON.stringify({
+        source: "gallery",
+        assetId: recordDialogItem.asset.id,
+        fileName: recordDialogItem.asset.fileName,
+        generationId: recordDialogItem.generationId,
+        outputFormat: recordDialogItem.outputFormat,
+        outputId: recordDialogItem.outputId,
+        prompt: recordDialogItem.prompt,
+        quality: recordDialogItem.quality,
+        size: recordDialogItem.size,
+        createdAt: recordDialogItem.createdAt
+      })
+    };
+
+    setIsRecordDialogSaving(true);
+    setRecordDialogError("");
+
+    try {
+      const response = await fetch(`/api/project-records/${encodeURIComponent(recordDialogRecordId)}/links`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(request)
+      });
+      if (!response.ok) {
+        throw new Error(await readGalleryError(response, locale, t));
+      }
+
+      const body = (await response.json()) as { record?: { title?: string } };
+      const recordTitle = body.record?.title ?? t("galleryRecordFallbackRecordTitle");
+      closeRecordDialog();
+      showStatus(t("galleryRecordSaved", { recordTitle }));
+    } catch (saveError) {
+      setRecordDialogError(saveError instanceof Error ? saveError.message : t("galleryRecordSaveFailed"));
+    } finally {
+      setIsRecordDialogSaving(false);
+    }
+  }
+
   function requestDelete(item: GalleryImageItem): void {
     setError("");
     setPendingDeleteItem(item);
@@ -515,11 +682,35 @@ export function GalleryPage({ onDeleted, onReuse }: GalleryPageProps) {
           copied={copiedOutputId === selectedItem.outputId}
           deleting={deletingOutputId === selectedItem.outputId}
           item={selectedItem}
+          onAddToRecord={() => requestAddToRecord(selectedItem)}
           onClose={() => setSelectedItem(null)}
           onCopy={() => void copyPrompt(selectedItem)}
           onDelete={() => requestDelete(selectedItem)}
           onDownload={() => downloadItem(selectedItem)}
           onReuse={() => onReuse(selectedItem)}
+        />
+      ) : null}
+
+      {recordDialogItem ? (
+        <AddToProjectRecordDialog
+          curationStatus={recordDialogCurationStatus}
+          error={recordDialogError}
+          isLoading={isRecordDialogLoading}
+          isSaving={isRecordDialogSaving}
+          item={recordDialogItem}
+          notes={recordDialogNotes}
+          projectDetail={recordDialogProjectDetail}
+          projects={recordDialogProjects}
+          rejectReasons={recordDialogRejectReasons}
+          selectedProjectId={recordDialogProjectId}
+          selectedRecordId={recordDialogRecordId}
+          onCancel={closeRecordDialog}
+          onChangeCurationStatus={updateRecordDialogCurationStatus}
+          onChangeNotes={setRecordDialogNotes}
+          onChangeProject={changeRecordDialogProject}
+          onChangeRecord={setRecordDialogRecordId}
+          onConfirm={() => void submitRecordDialog()}
+          onToggleRejectReason={toggleRecordDialogRejectReason}
         />
       ) : null}
 
@@ -622,6 +813,7 @@ function FeaturedGalleryItem({
   deleting,
   expanded,
   item,
+  onAddToRecord,
   onCopy,
   onDelete,
   onDownload,
@@ -689,6 +881,7 @@ function FeaturedGalleryItem({
             copied={copied}
             deleting={deleting}
             item={item}
+            onAddToRecord={onAddToRecord}
             onCopy={onCopy}
             onDelete={onDelete}
             onDownload={onDownload}
@@ -705,6 +898,7 @@ function GalleryCard({
   deleting,
   expanded,
   item,
+  onAddToRecord,
   onCopy,
   onDelete,
   onDownload,
@@ -766,6 +960,7 @@ function GalleryCard({
             copied={copied}
             deleting={deleting}
             item={item}
+            onAddToRecord={onAddToRecord}
             onCopy={onCopy}
             onDelete={onDelete}
             onDownload={onDownload}
@@ -811,6 +1006,7 @@ function GalleryIconActions({
   copied,
   deleting,
   item,
+  onAddToRecord,
   onCopy,
   onDelete,
   onDownload,
@@ -855,6 +1051,15 @@ function GalleryIconActions({
         onClick={() => onReuse(item)}
       >
         <RotateCcw className="size-4" aria-hidden="true" />
+      </button>
+      <button
+        aria-label={t("galleryActionAddToRecord", { excerpt })}
+        className="gallery-icon-action"
+        title={t("galleryRecordAddAction")}
+        type="button"
+        onClick={() => onAddToRecord(item)}
+      >
+        <FolderPlus className="size-4" aria-hidden="true" />
       </button>
       <button
         aria-label={t("galleryActionDeleteImage", { excerpt })}
@@ -933,6 +1138,7 @@ function GalleryDetailDialog({
   copied,
   deleting,
   item,
+  onAddToRecord,
   onClose,
   onCopy,
   onDelete,
@@ -942,6 +1148,7 @@ function GalleryDetailDialog({
   copied: boolean;
   deleting: boolean;
   item: GalleryImageItem;
+  onAddToRecord: () => void;
   onClose: () => void;
   onCopy: () => void;
   onDelete: () => void;
@@ -1018,9 +1225,178 @@ function GalleryDetailDialog({
             <RotateCcw className="size-4" aria-hidden="true" />
             {t("commonReuse")}
           </button>
+          <button className="secondary-action h-10" type="button" onClick={onAddToRecord}>
+            <FolderPlus className="size-4" aria-hidden="true" />
+            {t("galleryRecordAddAction")}
+          </button>
           <button className="secondary-action h-10 text-red-700 hover:text-red-800" disabled={deleting} type="button" onClick={onDelete}>
             {deleting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Trash2 className="size-4" aria-hidden="true" />}
             {t("commonRemove")}
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+function AddToProjectRecordDialog({
+  curationStatus,
+  error,
+  isLoading,
+  isSaving,
+  item,
+  notes,
+  projectDetail,
+  projects,
+  rejectReasons,
+  selectedProjectId,
+  selectedRecordId,
+  onCancel,
+  onChangeCurationStatus,
+  onChangeNotes,
+  onChangeProject,
+  onChangeRecord,
+  onConfirm,
+  onToggleRejectReason
+}: {
+  curationStatus: ProjectRecordCurationStatus;
+  error: string;
+  isLoading: boolean;
+  isSaving: boolean;
+  item: GalleryImageItem;
+  notes: string;
+  projectDetail: CreativeProjectDetailResponse | null;
+  projects: CreativeProject[];
+  rejectReasons: ProjectRecordRejectReason[];
+  selectedProjectId: string;
+  selectedRecordId: string;
+  onCancel: () => void;
+  onChangeCurationStatus: (value: ProjectRecordCurationStatus) => void;
+  onChangeNotes: (value: string) => void;
+  onChangeProject: (value: string) => void;
+  onChangeRecord: (value: string) => void;
+  onConfirm: () => void;
+  onToggleRejectReason: (reason: ProjectRecordRejectReason) => void;
+}) {
+  const { t } = useI18n();
+  const records = projectDetail?.records ?? [];
+  const canSubmit =
+    !isLoading &&
+    !isSaving &&
+    Boolean(selectedRecordId) &&
+    (curationStatus !== "rejected" || rejectReasons.length > 0);
+
+  return (
+    <div className="gallery-confirm-backdrop app-modal-backdrop" data-testid="gallery-add-record-dialog" role="presentation">
+      <div
+        aria-describedby="gallery-add-record-description"
+        aria-labelledby="gallery-add-record-title"
+        aria-modal="true"
+        className="gallery-record-dialog app-modal-surface"
+        role="dialog"
+      >
+        <header className="gallery-record-dialog__header">
+          <div>
+            <p className="gallery-record-dialog__eyebrow">{t("galleryRecordDialogEyebrow")}</p>
+            <h2 id="gallery-add-record-title">{t("galleryRecordDialogTitle")}</h2>
+            <p id="gallery-add-record-description">{t("galleryRecordDialogCopy", { excerpt: promptExcerpt(item.prompt) })}</p>
+          </div>
+          <button aria-label={t("commonClose")} className="gallery-icon-action gallery-modal__close" disabled={isSaving} type="button" onClick={onCancel}>
+            <X className="size-4" aria-hidden="true" />
+          </button>
+        </header>
+
+        <div className="gallery-record-dialog__body">
+          <label className="project-records-field">
+            <span>{t("galleryRecordProjectLabel")}</span>
+            <select disabled={isLoading || isSaving} value={selectedProjectId} onChange={(event) => onChangeProject(event.target.value)}>
+              {projects.length === 0 ? <option value="mavosport">MavoSport</option> : null}
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="project-records-field">
+            <span>{t("galleryRecordRecordLabel")}</span>
+            <select disabled={isLoading || isSaving || records.length === 0} value={selectedRecordId} onChange={(event) => onChangeRecord(event.target.value)}>
+              <option value="">{records.length > 0 ? t("galleryRecordSelectRecord") : t("galleryRecordNoRecords")}</option>
+              {records.map((record) => (
+                <option key={record.id} value={record.id}>
+                  {record.title}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="project-records-field">
+            <span>{t("galleryRecordCurationLabel")}</span>
+            <select
+              disabled={isLoading || isSaving}
+              value={curationStatus}
+              onChange={(event) => onChangeCurationStatus(event.target.value as ProjectRecordCurationStatus)}
+            >
+              {PROJECT_RECORD_CURATION_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {projectRecordCurationLabel(status, t)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {curationStatus === "rejected" ? (
+            <fieldset className="gallery-record-dialog__reject-reasons">
+              <legend>{t("galleryRecordRejectReasonsLabel")}</legend>
+              <div className="project-records-reject-reasons">
+                {PROJECT_RECORD_REJECT_REASONS.map((reason) => (
+                  <label key={reason}>
+                    <input
+                      checked={rejectReasons.includes(reason)}
+                      disabled={isSaving}
+                      type="checkbox"
+                      onChange={() => onToggleRejectReason(reason)}
+                    />
+                    <span>{projectRecordRejectReasonLabel(reason, t)}</span>
+                  </label>
+                ))}
+              </div>
+              {rejectReasons.length === 0 ? (
+                <p className="project-records-inline-warning">
+                  <AlertTriangle className="size-4" aria-hidden="true" />
+                  {t("galleryRecordRejectReasonRequired")}
+                </p>
+              ) : null}
+            </fieldset>
+          ) : null}
+
+          <label className="project-records-field">
+            <span>{t("galleryRecordNotesLabel")}</span>
+            <textarea
+              disabled={isSaving}
+              placeholder={t("galleryRecordNotesPlaceholder")}
+              rows={4}
+              value={notes}
+              onChange={(event) => onChangeNotes(event.target.value)}
+            />
+          </label>
+
+          {error ? (
+            <div className="gallery-record-dialog__alert" role="alert">
+              <XCircle className="size-4" aria-hidden="true" />
+              <span>{error}</span>
+            </div>
+          ) : null}
+        </div>
+
+        <footer className="gallery-record-dialog__actions">
+          <button className="secondary-action h-10" disabled={isSaving} type="button" onClick={onCancel}>
+            {t("commonCancel")}
+          </button>
+          <button className="gallery-export-bar__primary h-10" disabled={!canSubmit} type="button" onClick={onConfirm}>
+            {isSaving || isLoading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <FolderPlus className="size-4" aria-hidden="true" />}
+            {isLoading ? t("galleryRecordLoading") : t("galleryRecordSubmit")}
           </button>
         </footer>
       </div>
@@ -1129,6 +1505,54 @@ function sizeTagLabel(item: GalleryImageItem, t: Translate): string {
   const preset = SIZE_PRESETS.find((sizePreset) => sizePreset.width === item.size.width && sizePreset.height === item.size.height);
   const presetLabel = preset ? t("sizePresetLabel", { presetId: preset.id, fallback: preset.label }) : t("customSize");
   return `${presetLabel} · ${item.size.width} x ${item.size.height}`;
+}
+
+function projectRecordCurationLabel(status: ProjectRecordCurationStatus, t: Translate): string {
+  switch (status) {
+    case "usable":
+      return t("galleryRecordCurationUsable");
+    case "rejected":
+      return t("galleryRecordCurationRejected");
+    case "needs_regeneration":
+      return t("galleryRecordCurationNeedsRegeneration");
+    case "reference_only":
+      return t("galleryRecordCurationReferenceOnly");
+  }
+}
+
+function projectRecordRejectReasonLabel(reason: ProjectRecordRejectReason, t: Translate): string {
+  switch (reason) {
+    case "no_logo":
+      return t("galleryRecordRejectReasonNoLogo");
+    case "wrong_logo":
+      return t("galleryRecordRejectReasonWrongLogo");
+    case "logo_position_wrong":
+      return t("galleryRecordRejectReasonLogoPositionWrong");
+    case "wrong_ratio":
+      return t("galleryRecordRejectReasonWrongRatio");
+    case "bad_composition":
+      return t("galleryRecordRejectReasonBadComposition");
+    case "too_ugly":
+      return t("galleryRecordRejectReasonTooUgly");
+    case "fake_text":
+      return t("galleryRecordRejectReasonFakeText");
+    case "fake_score_or_data":
+      return t("galleryRecordRejectReasonFakeScoreOrData");
+    case "brand_risk":
+      return t("galleryRecordRejectReasonBrandRisk");
+    case "real_person_risk":
+      return t("galleryRecordRejectReasonRealPersonRisk");
+    case "trademark_risk":
+      return t("galleryRecordRejectReasonTrademarkRisk");
+    case "too_aggressive":
+      return t("galleryRecordRejectReasonTooAggressive");
+    case "gambling_vibe":
+      return t("galleryRecordRejectReasonGamblingVibe");
+    case "not_video_friendly":
+      return t("galleryRecordRejectReasonNotVideoFriendly");
+    case "other":
+      return t("galleryRecordRejectReasonOther");
+  }
 }
 
 function promptExcerpt(promptValue: string): string {

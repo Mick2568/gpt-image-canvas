@@ -87,7 +87,7 @@ export function getOpenAIImageProviderConfig():
   if (!apiKey) {
     return {
       ok: false,
-      error: new ProviderError("missing_api_key", "服务器缺少 OPENAI_API_KEY，无法生成图像。", 500)
+      error: new ProviderError("missing_api_key", "伺服器缺少 OPENAI_API_KEY，無法生成圖片。", 500)
     };
   }
 
@@ -190,18 +190,18 @@ function toProviderError(error: unknown): Error {
   }
 
   if (error instanceof APIConnectionTimeoutError) {
-    return new ProviderError("upstream_failure", "OpenAI 图像服务请求超时，请稍后重试或降低分辨率。", 504);
+    return new ProviderError("upstream_failure", "OpenAI 圖片服務請求逾時，請稍後重試或降低解析度。", 504);
   }
 
   if (error instanceof APIError) {
-    return new ProviderError("upstream_failure", error.message || "OpenAI 图像服务请求失败。", providerHttpStatus(error.status));
+    return new ProviderError("upstream_failure", error.message || "OpenAI 圖片服務請求失敗。", providerHttpStatus(error.status));
   }
 
   if (error instanceof Error && error.message) {
     return new ProviderError("upstream_failure", error.message, 502);
   }
 
-  return new ProviderError("upstream_failure", "OpenAI 图像服务请求失败。", 502);
+  return new ProviderError("upstream_failure", "OpenAI 圖片服務請求失敗。", 502);
 }
 
 function providerHttpStatus(status: number | undefined): number {
@@ -224,13 +224,13 @@ async function normalizeProviderResponse(
   signal?: AbortSignal
 ): Promise<ProviderResult> {
   if (!Array.isArray(response.data) || response.data.length === 0) {
-    throw new ProviderError("unsupported_provider_behavior", "OpenAI 图像服务没有返回图像结果。", 502);
+    throw new ProviderError("unsupported_provider_behavior", "OpenAI 圖片服務沒有回傳圖片結果。", 502);
   }
 
   const images = await Promise.all(response.data.map((item) => providerImageFromResponseItem(item, signal)));
 
   if (images.some((image) => !image.b64Json)) {
-    throw new ProviderError("unsupported_provider_behavior", "OpenAI 图像服务没有返回 base64 图像数据。", 502);
+    throw new ProviderError("unsupported_provider_behavior", "OpenAI 圖片服務沒有回傳 base64 圖片資料。", 502);
   }
 
   return {
@@ -261,7 +261,7 @@ async function providerImageFromResponseItem(item: Image, signal?: AbortSignal):
 async function downloadProviderImageUrl(url: string, signal?: AbortSignal): Promise<string> {
   const parsedUrl = parseProviderImageUrl(url);
   if (!parsedUrl) {
-    throw new ProviderError("unsupported_provider_behavior", "OpenAI 图像服务返回的图片 URL 不受支持。", 502);
+    throw new ProviderError("unsupported_provider_behavior", "OpenAI 圖片服務回傳的圖片 URL 不受支援。", 502);
   }
 
   if (parsedUrl.protocol === "data:") {
@@ -270,24 +270,24 @@ async function downloadProviderImageUrl(url: string, signal?: AbortSignal): Prom
 
   const response = await fetch(parsedUrl, { signal });
   if (!response.ok) {
-    throw new ProviderError("upstream_failure", "OpenAI 图像 URL 下载失败。", providerHttpStatus(response.status));
+    throw new ProviderError("upstream_failure", "OpenAI 圖片 URL 下載失敗。", providerHttpStatus(response.status));
   }
 
   if (!isProviderImageContentType(response.headers.get("content-type"))) {
-    throw new ProviderError("unsupported_provider_behavior", "OpenAI 图像 URL 返回的内容不是图片。", 502);
+    throw new ProviderError("unsupported_provider_behavior", "OpenAI 圖片 URL 回傳的內容不是圖片。", 502);
   }
 
   const contentLength = parseContentLength(response.headers.get("content-length"));
   if (contentLength !== undefined && contentLength > MAX_PROVIDER_IMAGE_BYTES) {
-    throw new ProviderError("unsupported_provider_behavior", "OpenAI 图像 URL 返回的文件过大。", 502);
+    throw new ProviderError("unsupported_provider_behavior", "OpenAI 圖片 URL 回傳的檔案過大。", 502);
   }
 
   const bytes = Buffer.from(await response.arrayBuffer());
   if (bytes.length > MAX_PROVIDER_IMAGE_BYTES) {
-    throw new ProviderError("unsupported_provider_behavior", "OpenAI 图像 URL 返回的文件过大。", 502);
+    throw new ProviderError("unsupported_provider_behavior", "OpenAI 圖片 URL 回傳的檔案過大。", 502);
   }
   if (!isProviderImageBytes(bytes)) {
-    throw new ProviderError("unsupported_provider_behavior", "OpenAI 图像 URL 返回的内容不是可识别的图片。", 502);
+    throw new ProviderError("unsupported_provider_behavior", "OpenAI 圖片 URL 回傳的內容不是可識別的圖片。", 502);
   }
 
   return bytes.toString("base64");
@@ -307,7 +307,7 @@ function parseProviderImageUrl(url: string): URL | undefined {
 function dataUrlToBase64(url: string): string {
   const match = /^data:image\/[^;,]+;base64,(.+)$/u.exec(url);
   if (!match) {
-    throw new ProviderError("unsupported_provider_behavior", "OpenAI 图像服务返回的 data URL 不受支持。", 502);
+    throw new ProviderError("unsupported_provider_behavior", "OpenAI 圖片服務回傳的 data URL 不受支援。", 502);
   }
 
   return match[1];
@@ -350,17 +350,17 @@ function parseContentLength(value: string | null): number | undefined {
 async function dataUrlToFile(input: ReferenceImageInput): Promise<File> {
   const match = /^data:([^;,]+);base64,(.+)$/u.exec(input.dataUrl);
   if (!match) {
-    throw new ProviderError("unsupported_provider_behavior", "参考图像格式不受支持。", 400);
+    throw new ProviderError("unsupported_provider_behavior", "參考圖片格式不受支援。", 400);
   }
 
   const mimeType = match[1].toLowerCase();
   if (!SUPPORTED_REFERENCE_MIME_TYPES.has(mimeType)) {
-    throw new ProviderError("unsupported_provider_behavior", "参考图像必须是 PNG、JPEG 或 WebP 格式。", 400);
+    throw new ProviderError("unsupported_provider_behavior", "參考圖片必須是 PNG、JPEG 或 WebP 格式。", 400);
   }
 
   const bytes = Buffer.from(match[2], "base64");
   if (bytes.length > MAX_REFERENCE_IMAGE_BYTES) {
-    throw new ProviderError("unsupported_provider_behavior", "参考图像不能超过 50MB。", 400);
+    throw new ProviderError("unsupported_provider_behavior", "參考圖片不能超過 50MB。", 400);
   }
 
   const normalizedMimeType = mimeType === "image/jpg" ? "image/jpeg" : mimeType;

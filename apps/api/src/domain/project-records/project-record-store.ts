@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import {
   CREATIVE_PROJECT_RECORD_STAGES,
   CREATIVE_PROJECT_RECORD_STATUSES,
@@ -190,6 +190,38 @@ export function createProjectRecordLink(recordId: string, request: CreateProject
 
   const normalized = normalizeLinkRequest(request);
   const now = nowIso();
+  const existingLink = normalized.targetId
+    ? db
+        .select()
+        .from(projectRecordLinks)
+        .where(
+          and(
+            eq(projectRecordLinks.recordId, recordId),
+            eq(projectRecordLinks.linkType, normalized.linkType),
+            eq(projectRecordLinks.targetId, normalized.targetId)
+          )
+        )
+        .get()
+    : undefined;
+
+  if (existingLink) {
+    db.update(projectRecordLinks)
+      .set({
+        targetPath: normalized.targetPath,
+        title: normalized.title,
+        curationStatus: normalized.curationStatus,
+        rejectReasonsJson: JSON.stringify(normalized.rejectReasons),
+        notes: normalized.notes,
+        metadataJson: normalized.metadataJson,
+        updatedAt: now
+      })
+      .where(eq(projectRecordLinks.id, existingLink.id))
+      .run();
+
+    touchProjectRecord(recordId);
+    return getProjectRecordDetail(recordId);
+  }
+
   db.insert(projectRecordLinks)
     .values({
       id: randomUUID(),

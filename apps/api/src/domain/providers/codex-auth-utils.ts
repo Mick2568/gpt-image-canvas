@@ -185,7 +185,7 @@ export function parseCodexDevicePollPayload(httpStatus: number, payload: unknown
 
     return {
       status: "error",
-      message: "Codex 登录服务返回内容无法识别。"
+      message: "Codex 登入服務回傳內容無法識別。"
     };
   }
 
@@ -206,20 +206,20 @@ export function parseCodexDevicePollPayload(httpStatus: number, payload: unknown
   if (errorCode === "expired_token") {
     return {
       status: "expired",
-      message: "Codex 登录码已过期，请重新开始登录。"
+      message: "Codex 驗證碼已過期，請重新開始登入。"
     };
   }
 
   if (errorCode === "access_denied") {
     return {
       status: "denied",
-      message: "Codex 登录已被取消。"
+      message: "Codex 登入已被取消。"
     };
   }
 
   return {
     status: "error",
-    message: "Codex 登录轮询失败，请稍后重试。"
+    message: "Codex 登入輪詢失敗，請稍後重試。"
   };
 }
 

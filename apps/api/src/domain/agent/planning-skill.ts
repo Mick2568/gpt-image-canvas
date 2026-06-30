@@ -95,13 +95,13 @@ Pattern A2: selected-image creative reference
 - Keep the referenced subject recognizable and do not replace it with an unrelated subject.
 
 Pattern B: batch selected-image edit
-- Use this when the user says each image, every image, all selected images, 每张图, 每一张, 所有图, 全部图片, or similar.
+- Use this when the user says each image, every image, all selected images, 每張圖, 每一張, 所有圖, 全部圖片, or similar.
 - Prefer one final_image job per selected reference with count 1 and exactly one selected_canvas_image reference.
 - You may choose a different job structure only if the user explicitly asks to combine images or use multiple references together.
 - The final plan must cover every selected reference in at least one final_image job.
 
 Pattern C: combine/collage selected references
-- Use this when the user asks to combine, collage, merge, compare, make one poster from multiple images, 拼贴, 合成, 组合, 放在一起, or similar.
+- Use this when the user asks to combine, collage, merge, compare, make one poster from multiple images, 拼貼, 合成, 組合, 放在一起, or similar.
 - A single final_image job may reference multiple selected_canvas_image references.
 - If the user asks to combine more than 3 selected references into one image, return AgentUserQuestion with code "agent_requires_user_input" asking them to select 3 or fewer images or split the output.
 - The prompt must state how the selected references are used together.
@@ -128,9 +128,9 @@ metadata:
 # Ecommerce Visual Copywriting Skill v1
 
 Use this skill when the user asks for ecommerce scenarios such as:
-- 主图文案, 详情页文案, 电商文案, 商品文案, listing copy, product detail page, CTR optimization
-- 淘宝, 天猫, 京东, 拼多多, 抖音小店, marketplace hero images, product posters, product cards
-- compliance review, 广告法, platform review, health-food copy, ordinary food copy, sports-equipment copy
+- 主圖文案, 詳情頁文案, 電商文案, 商品文案, listing copy, product detail page, CTR optimization
+- 淘寶, 天貓, 京東, 拼多多, 抖音小店, marketplace hero images, product posters, product cards
+- compliance review, 廣告法, platform review, health-food copy, ordinary food copy, sports-equipment copy
 
 This skill adapts the ecommerce SOP to gpt-image-canvas. You must still return exactly one strict GenerationPlan JSON object, or an AgentUserQuestion when required. Put ecommerce copy, scene direction, compliance notes, and design instructions inside each GenerationJob.prompt. Do not output Markdown execution plans, tables, or prose outside JSON.
 
@@ -161,12 +161,12 @@ Detail-page structure:
 - Each detail module should use at most 6 effective on-image text lines.
 
 Compliance rules:
-- All products: avoid absolute or unverifiable claims such as 唯一, 最, 第一, 绝对, 顶级, 完美, 100%, 国家级, 特效, guaranteed, best, cure, permanent, or miracle.
-- Data such as percentages, multipliers, 未检出, certificates, approvals, patents, and testing claims require a provided report number, certificate number, source, or approval text. If absent, remove or soften the claim.
+- All products: avoid absolute or unverifiable claims such as 唯一, 最, 第一, 絕對, 頂級, 完美, 100%, 國家級, 特效, guaranteed, best, cure, permanent, or miracle.
+- Data such as percentages, multipliers, 未檢出, certificates, approvals, patents, and testing claims require a provided report number, certificate number, source, or approval text. If absent, remove or soften the claim.
 - Do not directly disparage competitor brands or make binary "we are good, they are bad" comparisons.
-- Blue-hat health food: only use the approved function text provided by the user. Include a visible disclaimer direction: 本品为保健食品，不能代替药物；具体功效以批准文号载明内容为准.
-- Ordinary food: do not imply health, medical, symptom, body-change, disease, sleep, immunity, fat-loss, digestion, or treatment effects. Safe angles are ingredient/source, process, taste, nutrition facts with support, packaging, scene, SKU, brand story, and production qualification. Include a visible disclaimer direction: 本品为普通食品，非保健食品，非药品；不具有任何保健功能或治疗作用；仅供日常食用.
-- Sports equipment/body-management: avoid medical diagnosis and treatment language such as 治疗, 修复, 康复, 矫正, 腰酸背痛, 关节痛, 脊柱侧弯, medical grade. Prefer 训练, 体态管理, 支撑, 放松紧绷感, 辅助, 有助于, 因人而异, and include a visible non-medical disclaimer direction when claims are sensitive.
+- Blue-hat health food: only use the approved function text provided by the user. Include a visible disclaimer direction: 本品為保健食品，不能代替藥物；具體功效以批准文號載明內容為準.
+- Ordinary food: do not imply health, medical, symptom, body-change, disease, sleep, immunity, fat-loss, digestion, or treatment effects. Safe angles are ingredient/source, process, taste, nutrition facts with support, packaging, scene, SKU, brand story, and production qualification. Include a visible disclaimer direction: 本品為一般食品，非保健食品，非藥品；不具有任何保健功能或治療作用；僅供日常食用.
+- Sports equipment/body-management: avoid medical diagnosis and treatment language such as 治療, 修復, 康復, 矯正, 腰痠背痛, 關節痛, 脊柱側彎, medical grade. Prefer 訓練, 體態管理, 支撐, 放鬆緊繃感, 輔助, 有助於, 因人而異, and include a visible non-medical disclaimer direction when claims are sensitive.
 
 Prompt writing rules for ecommerce jobs:
 - Include exact on-image copy only when it is safe. If the user provides draft copy that is risky, rewrite it into compliant, shorter copy.
@@ -175,125 +175,125 @@ Prompt writing rules for ecommerce jobs:
 - For Chinese marketplace assets, prefer clean Chinese typography, high contrast, product-first composition, and uncluttered mobile scanning.
 `;
 
-export const ECOMMERCE_VISUAL_COPYWRITING_COMPLIANCE_RULES = `# 电商文案合规规则库
+export const ECOMMERCE_VISUAL_COPYWRITING_COMPLIANCE_RULES = `# 電商文案合規規則庫
 
-按产品类型分层，使用时自动匹配对应规则层。普通食品红线最严：什么功能都不能说。
+按產品類型分層，使用時自動匹配對應規則層。一般食品紅線最嚴：什麼功能都不能說。
 
-## 零层：通用规则（所有产品必过）
+## 零層：通用規則（所有產品必過）
 
-### 绝对化用语禁用清单
-禁止：唯一、最、所有、只有、第一、绝对、顶级、极致、完美、无敌、彻底、完全、100%、99%、100倍、国家级、特效
-替换为：多数 / 约 / 显著 / 较为 / 之一 / 部分 / 大多数 / 助力 / 逐步
+### 絕對化用語禁用清單
+禁止：唯一、最、所有、只有、第一、絕對、頂級、極致、完美、無敵、徹底、完全、100%、99%、100倍、國家級、特效
+替換為：多數 / 約 / 顯著 / 較為 / 之一 / 部分 / 大多數 / 助力 / 逐步
 
-### 数据/事实宣称必须有背书
-- 每个"XX倍""XX%""未检出""含有"必须附第三方检测报告编号。
-- 认证类宣称必须附认证机构全称和证书编号。
-- 无报告支撑的数据，删除或改为定性模糊描述，例如"含量较高""多数情况下"。
+### 資料/事實宣稱必須有背書
+- 每個"XX倍""XX%""未檢出""含有"必須附第三方檢測報告編號。
+- 認證類宣稱必須附認證機構全稱和證書編號。
+- 無報告支撐的資料，刪除或改為定性模糊描述，例如"含量較高""多數情況下"。
 
-### 竞品对比原则
-- 不直接贬低竞品品牌。
-- 不做"我优他劣"的二元对立表述。
-- 正确方式：陈述自身属性，并引用行业公开数据做客观参照。
+### 競品對比原則
+- 不直接貶低競品品牌。
+- 不做"我優他劣"的二元對立表述。
+- 正確方式：陳述自身屬性，並引用行業公開資料做客觀參照。
 
-### 各平台审查重点
-| 平台 | 抓取重点 |
+### 各平臺審查重點
+| 平臺 | 抓取重點 |
 |------|---------|
-| 淘宝/天猫 | 系统自动审核敏感词；保健食品/特殊品类严 |
-| 京东 | 参数页必须与资质100%一致；功效宣称零容忍 |
-| 拼多多 | 价格绝对化（最低价/最便宜）抓极严 |
-| 抖音小店 | 视频/直播口播同样需要合规 |
+| 淘寶/天貓 | 系統自動審核敏感詞；保健食品/特殊品類嚴 |
+| 京東 | 參數頁必須與資質100%一致；功效宣稱零容忍 |
+| 拼多多 | 價格絕對化（最低價/最便宜）抓極嚴 |
+| 抖音小店 | 影片/直播口播同樣需要合規 |
 
-## 一层：蓝帽子保健食品（持有保健食品批准文号）
+## 一層：藍帽子保健食品（持有保健食品批准文號）
 
-### 核心铁律
-只能宣传批文批准的功能名称，一个字都不能多、一个字都不能少。
+### 核心鐵律
+只能宣傳批文批准的功能名稱，一個字都不能多、一個字都不能少。
 
 操作方法：
-1. 先确认该产品的批准功能原文。
-2. 全文只允许出现该功能的标准表述。
+1. 先確認該產品的批准功能原文。
+2. 全文只允許出現該功能的標準表述。
 
-### 功效边界表
-| 禁止宣称类型 | 禁用词举例 | 正确做法 |
+### 功效邊界表
+| 禁止宣稱類型 | 禁用詞舉例 | 正確做法 |
 |-------------|-----------|---------|
-| 美容/护肤 | 气色、素颜、肤色、美容、养颜、祛痘、抗衰、嫩肤 | 全部删除 |
-| 控糖/降血糖 | 控糖友好、糖友可吃、降血糖、稳血糖 | 必须加注"不具有该功效+请咨询医生" |
-| 上火/清热 | 不上火、祛火、清热、解毒 | 有检测支撑可写"部分消费者反馈因人而异"，否则删除 |
-| 免疫力相关 | 提高免疫力、增强免疫、改善睡眠 | 非批准功能全部禁止 |
-| 减肥/体重 | 发胖、瘦身、减脂推荐 | 改为"无糖分负担"，不关联体重 |
+| 美容/護膚 | 氣色、素顏、膚色、美容、養顏、祛痘、抗衰、嫩膚 | 全部刪除 |
+| 控糖/降血糖 | 控糖友好、糖友可吃、降血糖、穩血糖 | 必須加註"不具有該功效+請諮詢醫生" |
+| 上火/清熱 | 不上火、祛火、清熱、解毒 | 有檢測支撐可寫"部分消費者回饋因人而異"，否則刪除 |
+| 免疫力相關 | 提高免疫力、增強免疫、改善睡眠 | 非批准功能全部禁止 |
+| 減肥/體重 | 發胖、瘦身、減脂推薦 | 改為"無糖分負擔"，不關聯體重 |
 
-### 必须保留的法律免责声明
-本品为保健食品，不能代替药物。
-不能代替药物治疗疾病。
-具体功效以批准文号载明内容为准。
+### 必須保留的法律免責聲明
+本品為保健食品，不能代替藥物。
+不能代替藥物治療疾病。
+具體功效以批准文號載明內容為準。
 
-## 二层：运动器材/体态管理类（非医疗器械）
+## 二層：運動器材/體態管理類（非醫療器械）
 
-### 核心风险
-极易触碰医疗化暗示和治疗效果承诺红线，因为目标用户本身就是有身体困扰的人群。
+### 核心風險
+極易觸碰醫療化暗示和治療效果承諾紅線，因為目標使用者本身就是有身體困擾的人群。
 
-### 医疗化术语替换表（高风险，必须逐条检查）
-| 禁止类型 | 禁用词举例 | 替换方向 | 原因 |
+### 醫療化術語替換表（高風險，必須逐條檢查）
+| 禁止類型 | 禁用詞舉例 | 替換方向 | 原因 |
 |-----------|-------------|-----------|------|
-| 痛感描述 | 腰酸背痛、脖子痛、关节痛 | 腰背不适、肩颈紧绷感 | "痛"属病理症状 |
-| 医学术语 | 骨盆前倾、脊柱侧弯、椎间盘 | 骨盆形态不佳、背部线条不直 | 医学术语暗示诊断 |
-| 治疗动词 | 修复、治疗、康复、矫正 | 体态管理、体态调整、锻炼、训练 | 暗示能治疾病 |
-| 效果承诺 | 恢复XX状态、找回XX身体 | 向XX状态靠近、改善当前状况 | 绝对化效果承诺 |
-| 专业宣称 | 专业级、医疗级（无资质时） | 科学、系统、规范、严谨 | 无资质不可宣称 |
+| 痛感描述 | 腰痠背痛、脖子痛、關節痛 | 腰背不適、肩頸緊繃感 | "痛"屬病理症狀 |
+| 醫學術語 | 骨盆前傾、脊柱側彎、椎間盤 | 骨盆形態不佳、背部線條不直 | 醫學術語暗示診斷 |
+| 治療動詞 | 修復、治療、康復、矯正 | 體態管理、體態調整、鍛鍊、訓練 | 暗示能治疾病 |
+| 效果承諾 | 恢復XX狀態、找回XX身體 | 向XX狀態靠近、改善目前狀況 | 絕對化效果承諾 |
+| 專業宣稱 | 專業級、醫療級（無資質時） | 科學、系統、規範、嚴謹 | 無資質不可宣稱 |
 
-### 效果弱化原则（强制）
-- 所有效果相关表述必须添加弱化词：助力 / 逐步 / 辅助 / 有助于 / 因人而异。
-- 禁止："100%有效""彻底改善""一定见效"。
-- 推荐："助力逐步改善""效果因人而异"。
+### 效果弱化原則（強制）
+- 所有效果相關表述必須加入弱化詞：助力 / 逐步 / 輔助 / 有助於 / 因人而異。
+- 禁止："100%有效""徹底改善""一定見效"。
+- 推薦："助力逐步改善""效果因人而異"。
 
-### 免责声明模板
-本产品为运动器材/健身设备，非医疗产品。
-无法治疗疾病或病理问题。
-体态改善/训练效果因人而异。
-建议在专业人员指导下使用。
-如有身体不适请及时就医。
+### 免責聲明模板
+本產品為運動器材/健身設備，非醫療產品。
+無法治療疾病或病理問題。
+體態改善/訓練效果因人而異。
+建議在專業人員指導下使用。
+如有身體不適請及時就醫。
 
-## 三层：普通食品（非保健食品、非药品，最严）
+## 三層：一般食品（非保健食品、非藥品，最嚴）
 
-### 核心原则
-保健品至少有批文可说功能，普通食品什么功能都不能说。
+### 核心原則
+保健品至少有批文可說功能，一般食品什麼功能都不能說。
 
-### 四条底线（必须同时满足）
-1. 无违禁绝对化用语。
-2. 无虚假宣传风险，所有卖点可验证。
-3. 无不正当竞争风险，不贬低竞品。
-4. 无医疗化暗示，全程未关联任何疾病、症状或功效。
+### 四條底線（必須同時滿足）
+1. 無違禁絕對化用語。
+2. 無虛假宣傳風險，所有賣點可驗證。
+3. 無不正當競爭風險，不貶低競品。
+4. 無醫療化暗示，全程未關聯任何疾病、症狀或功效。
 
-### 绝对不能做的事
-| 禁止类型 | 示例 | 原因 |
+### 絕對不能做的事
+| 禁止類型 | 示例 | 原因 |
 |-----------|------|------|
-| 功效暗示 | "喝走胀闷感""喝出好状态""日常调理" | 暗示身体变化等于功效宣称 |
-| 症状关联 | 描述胃胀/便秘/失眠/疲劳后接产品 | 痛点加产品等于间接功效联想 |
-| 人群疾病绑定 | "适合糖尿病患者""三高人群" | 将产品与疾病人群绑定 |
-| 身体变化承诺 | "喝了之后XX""坚持饮用能XX" | 效果承诺无依据 |
-| 原料功效转嫁 | "松花粉富含XX营养所以能XX" | 用原料成分暗示成品功效 |
+| 功效暗示 | "喝走脹悶感""喝出好狀態""日常調理" | 暗示身體變化等於功效宣稱 |
+| 症狀關聯 | 描述胃脹/便秘/失眠/疲勞後接產品 | 痛點加產品等於間接功效聯想 |
+| 人群疾病綁定 | "適合糖尿病患者""三高人群" | 將產品與疾病人群綁定 |
+| 身體變化承諾 | "喝了之後XX""堅持飲用能XX" | 效果承諾無依據 |
+| 原料功效轉嫁 | "松花粉富含XX營養所以能XX" | 用原料成分暗示成品功效 |
 
-### 安全表达白名单（只能说这些）
-| 可以说 | 可以说 | 可以说 |
+### 安全表達白名單（只能說這些）
+| 可以說 | 可以說 | 可以說 |
 |-----------|-----------|-----------|
-| 原料来源产地 | 工艺特点（水溶/速溶/无渣） | 口感风味描述 |
-| 成分配料表 | 营养成分数据（需检测报告） | 饮用场景/时机 |
-| 包装规格/便携性 | 品牌故事/源头把控 | 生产资质/卫生许可 |
+| 原料來源產地 | 工藝特點（水溶/速溶/無渣） | 口感風味描述 |
+| 成分配料表 | 營養成分資料（需檢測報告） | 飲用場景/時機 |
+| 包裝規格/便攜性 | 品牌故事/源頭把控 | 生產資質/衛生許可 |
 
-### 兜底声明（必须保留）
-本品为普通食品，非保健食品，非药品。
-不具有任何保健功能或治疗作用。
-仅供日常食用。
+### 備援聲明（必須保留）
+本品為一般食品，非保健食品，非藥品。
+不具有任何保健功能或治療作用。
+僅供日常食用。
 
-## 上线前检查清单（全品类通用）
+## 上線前檢查清單（全品類通用）
 
-1. 全文搜索绝对化禁用词，零容忍。
-2. 确认功效/功能宣称与资质批准范围一致，不多不少。
-3. 确认每条数据/认证宣称附有报告编号或来源。
-4. 确认所有效果/改善类表述均有弱化词。
-5. 确认页面底部有法律免责声明且字号可辨识。
-6. 确认不适宜人群/注意事项与资质文件一致。
-7. 备案材料齐全，包括资质批件、检测报告、生产许可等。
-8. 提交平台预审，通过后再正式上线。
+1. 全文搜尋絕對化禁用詞，零容忍。
+2. 確認功效/功能宣稱與資質批准範圍一致，不多不少。
+3. 確認每條資料/認證宣稱附有報告編號或來源。
+4. 確認所有效果/改善類表述均有弱化詞。
+5. 確認頁面底部有法律免責聲明且字號可辨識。
+6. 確認不適宜人群/注意事項與資質檔案一致。
+7. 備案材料齊全，包括資質批件、檢測報告、生產許可等。
+8. 提交平臺預審，通過後再正式上線。
 `;
 
 export function createBuiltInPlanningSkillLibraryLoadout(): PlanningSkillLoadout {

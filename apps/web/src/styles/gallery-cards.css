@@ -512,7 +512,7 @@
 
 .gallery-feature .gallery-card__actions {
   width: auto;
-  grid-template-columns: repeat(4, 2.35rem);
+  grid-template-columns: repeat(5, 2.35rem);
   justify-content: end;
 }
 
@@ -643,8 +643,8 @@
 
 .gallery-card__actions {
   display: grid;
-  width: 9.75rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 12.3rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.35rem;
 }
 
@@ -755,6 +755,98 @@
 .gallery-modal__copy {
   border-color: var(--line);
   background: #fffaf1;
+}
+
+.gallery-record-dialog {
+  display: flex;
+  width: min(38rem, 100%);
+  max-height: min(100%, calc(100vh - var(--app-nav-height) - 2rem));
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-panel);
+  box-shadow: 0 34px 90px rgb(21 17 13 / 0.38);
+}
+
+.gallery-record-dialog__header,
+.gallery-record-dialog__actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+  border-color: var(--line);
+  background: #fffaf1;
+  padding: 1rem;
+}
+
+.gallery-record-dialog__header {
+  border-bottom: 1px solid var(--line);
+}
+
+.gallery-record-dialog__actions {
+  border-top: 1px solid var(--line);
+}
+
+.gallery-record-dialog__header h2 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-editorial);
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.gallery-record-dialog__header p {
+  margin: 0.35rem 0 0;
+  color: var(--muted-ink);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.gallery-record-dialog__eyebrow {
+  color: var(--accent-dark);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gallery-record-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.gallery-record-dialog__reject-reasons {
+  border: 1px solid var(--line);
+  background: #fffaf1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.8rem;
+}
+
+.gallery-record-dialog__reject-reasons legend {
+  color: var(--muted-ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 0 0.2rem;
+}
+
+.gallery-record-dialog__alert {
+  align-items: center;
+  border: 1px solid var(--danger);
+  background: #fff1ed;
+  color: var(--danger);
+  display: inline-flex;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.65rem 0.75rem;
 }
 
 .gallery-confirm {

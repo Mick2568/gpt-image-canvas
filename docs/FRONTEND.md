@@ -40,7 +40,7 @@ Use this document for work in `apps/web`, especially React, Vite, tldraw shapes,
 
 ## i18n
 
-- Add user-visible strings to `apps/web/src/shared/i18n/index.tsx` for both `zh-CN` and `en`.
+- Add user-visible strings to `apps/web/src/shared/i18n/index.tsx` for both `zh-TW` and `en`.
 - Do not hard-code visible strings in components unless the string is a brand, file extension, model ID, or API value.
 - Keep API error codes stable and map them to localized messages at the UI boundary.
 

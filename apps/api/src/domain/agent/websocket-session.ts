@@ -734,7 +734,7 @@ function isShortClarificationResponse(userText: string): boolean {
   const text = userText.trim().toLowerCase();
   return (
     text.length <= 80 &&
-    /新的设计图|新设计图|编辑原图|直接编辑|生成新的|生成新图|文生图|new design|new image|generate new|edit original|edit selected/u.test(
+    /新的設計圖|新設計圖|編輯原圖|直接編輯|生成新的|生成新圖|文生圖|new design|new image|generate new|edit original|edit selected/u.test(
       text
     )
   );

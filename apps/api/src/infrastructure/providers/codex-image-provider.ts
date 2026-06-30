@@ -170,7 +170,7 @@ class CodexResponsesImageProvider implements ImageProvider {
     if (!session) {
       throw new ProviderError(
         "missing_provider",
-        "服务器没有配置 OPENAI_API_KEY，也没有可用的 Codex 登录会话。请先登录 Codex 后重试。",
+        "伺服器沒有設定 OPENAI_API_KEY，也沒有可用的 Codex 登入工作階段。請先登入 Codex 後重試。",
         401
       );
     }
@@ -196,7 +196,7 @@ class CodexResponsesImageProvider implements ImageProvider {
       const events = await readCodexResponseEvents(response);
       const images = extractCodexImageBase64FromResponseEvents(events);
       if (images.length === 0) {
-        throw new ProviderError("unsupported_provider_behavior", "Codex 图像服务没有返回图像结果。", 502);
+        throw new ProviderError("unsupported_provider_behavior", "Codex 圖片服務沒有回傳圖片結果。", 502);
       }
 
       return {
@@ -245,17 +245,17 @@ function createResponsesInputContent(input: ResponsesImageInput): Array<Record<s
 function normalizeReferenceImageDataUrl(input: ReferenceImageInput): string {
   const match = /^data:([^;,]+);base64,(.+)$/u.exec(input.dataUrl);
   if (!match) {
-    throw new ProviderError("unsupported_provider_behavior", "参考图像格式不受支持。", 400);
+    throw new ProviderError("unsupported_provider_behavior", "參考圖片格式不受支援。", 400);
   }
 
   const mimeType = match[1].toLowerCase();
   if (!SUPPORTED_REFERENCE_MIME_TYPES.has(mimeType)) {
-    throw new ProviderError("unsupported_provider_behavior", "参考图像必须是 PNG、JPEG 或 WebP 格式。", 400);
+    throw new ProviderError("unsupported_provider_behavior", "參考圖片必須是 PNG、JPEG 或 WebP 格式。", 400);
   }
 
   const bytes = Buffer.from(match[2], "base64");
   if (bytes.length > MAX_REFERENCE_IMAGE_BYTES) {
-    throw new ProviderError("unsupported_provider_behavior", "参考图像不能超过 50MB。", 400);
+    throw new ProviderError("unsupported_provider_behavior", "參考圖片不能超過 50MB。", 400);
   }
 
   const normalizedMimeType = mimeType === "image/jpg" ? "image/jpeg" : mimeType;
@@ -353,18 +353,18 @@ function sanitizeCodexErrorDetail(value: string | undefined): string | undefined
 
 function codexHttpProviderError(status: number): ProviderError {
   if (status === 401 || status === 403) {
-    return new ProviderError("upstream_failure", "Codex 图像服务认证失败，请重新登录 Codex。", status);
+    return new ProviderError("upstream_failure", "Codex 圖片服務認證失敗，請重新登入 Codex。", status);
   }
 
-  return new ProviderError("upstream_failure", `Codex 图像服务请求失败（HTTP ${status}）。`, providerHttpStatus(status));
+  return new ProviderError("upstream_failure", `Codex 圖片服務請求失敗（HTTP ${status}）。`, providerHttpStatus(status));
 }
 
 function fetchFailureToProviderError(error: unknown): ProviderError | Error {
   if (isAbortError(error)) {
-    return new ProviderError("upstream_failure", "Codex 图像服务请求超时，请稍后重试或降低分辨率。", 504);
+    return new ProviderError("upstream_failure", "Codex 圖片服務請求逾時，請稍後重試或降低解析度。", 504);
   }
 
-  return new ProviderError("upstream_failure", "Codex 图像服务请求失败，请稍后重试。", 502);
+  return new ProviderError("upstream_failure", "Codex 圖片服務請求失敗，請稍後重試。", 502);
 }
 
 function timeoutSignal(signal: AbortSignal | undefined, timeoutMs: number): { signal: AbortSignal; cleanup: () => void } {

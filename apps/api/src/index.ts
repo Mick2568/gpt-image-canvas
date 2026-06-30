@@ -1,15 +1,23 @@
-import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { closeAllAgentSessions } from "./domain/agent/websocket-session.js";
 import { closeDatabase } from "./infrastructure/database.js";
-import { serverConfig } from "./infrastructure/runtime.js";
+import { runtimePaths, serverConfig } from "./infrastructure/runtime.js";
 import { agentWebSocketServer, app } from "./server/app.js";
 
 export { agentWebSocketServer, app } from "./server/app.js";
 
 function isMainModule(): boolean {
-  const entryUrl = process.argv[1] ? pathToFileURL(process.argv[1]).href : undefined;
-  return entryUrl === import.meta.url;
+  const entry = process.argv[1];
+  if (!entry) {
+    return false;
+  }
+
+  const modulePath = fileURLToPath(import.meta.url);
+  return [resolve(process.cwd(), entry), resolve(runtimePaths.packageRoot, entry)].some(
+    (entryPath) => entryPath === modulePath
+  );
 }
 
 if (isMainModule()) {

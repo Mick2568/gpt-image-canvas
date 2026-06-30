@@ -73,7 +73,7 @@ export function parseCodexPollPayload(input: unknown): ParseResult<{ deviceAuthI
   if (!isRecord(input)) {
     return {
       ok: false,
-      error: errorResponse("invalid_request", "Codex 登录轮询请求必须是 JSON 对象。")
+      error: errorResponse("invalid_request", "Codex 登入輪詢請求必須是 JSON 物件。")
     };
   }
 
@@ -83,7 +83,7 @@ export function parseCodexPollPayload(input: unknown): ParseResult<{ deviceAuthI
   if (!deviceAuthId || !userCode) {
     return {
       ok: false,
-      error: errorResponse("invalid_request", "Codex 登录轮询缺少设备码。")
+      error: errorResponse("invalid_request", "Codex 登入輪詢缺少裝置碼。")
     };
   }
 
@@ -105,7 +105,7 @@ export function parseEditPayload(input: unknown): ParseResult<EditImageProviderI
   if (!isRecord(input)) {
     return {
       ok: false,
-      error: errorResponse("unsupported_provider_behavior", "编辑图像需要提供 1-3 张参考图像。")
+      error: errorResponse("unsupported_provider_behavior", "編輯圖片需要提供 1-3 張參考圖片。")
     };
   }
 
@@ -123,7 +123,7 @@ export function parseEditPayload(input: unknown): ParseResult<EditImageProviderI
     if (!getStoredAssetFile(referenceAssetId)) {
       return {
         ok: false,
-        error: errorResponse("invalid_request", "找不到可记录的参考图像资源。")
+        error: errorResponse("invalid_request", "找不到可記錄的參考圖片資源。")
       };
     }
   }
@@ -150,14 +150,14 @@ function parseReferenceImages(input: Record<string, unknown>): ParseResult<Refer
   if (!rawReferenceImages) {
     return {
       ok: false,
-      error: errorResponse("unsupported_provider_behavior", "编辑图像需要提供 1-3 张参考图像。")
+      error: errorResponse("unsupported_provider_behavior", "編輯圖片需要提供 1-3 張參考圖片。")
     };
   }
 
   if (rawReferenceImages.length < 1 || rawReferenceImages.length > MAX_REFERENCE_IMAGES) {
     return {
       ok: false,
-      error: errorResponse("unsupported_provider_behavior", `参考图像数量必须是 1-${MAX_REFERENCE_IMAGES} 张。`)
+      error: errorResponse("unsupported_provider_behavior", `參考圖片數量必須是 1-${MAX_REFERENCE_IMAGES} 張。`)
     };
   }
 
@@ -166,7 +166,7 @@ function parseReferenceImages(input: Record<string, unknown>): ParseResult<Refer
     if (!isRecord(rawReferenceImage)) {
       return {
         ok: false,
-        error: errorResponse("unsupported_provider_behavior", "参考图像格式不受支持。")
+        error: errorResponse("unsupported_provider_behavior", "參考圖片格式不受支援。")
       };
     }
 
@@ -174,7 +174,7 @@ function parseReferenceImages(input: Record<string, unknown>): ParseResult<Refer
     if (typeof dataUrl !== "string" || dataUrl.trim().length === 0) {
       return {
         ok: false,
-        error: errorResponse("unsupported_provider_behavior", "参考图像格式不受支持。")
+        error: errorResponse("unsupported_provider_behavior", "參考圖片格式不受支援。")
       };
     }
 
@@ -205,7 +205,7 @@ function parseReferenceAssetIds(input: Record<string, unknown>, referenceImageCo
   ) {
     return {
       ok: false,
-      error: errorResponse("invalid_request", "参考图像资源 ID 数量必须与参考图像数量一致。")
+      error: errorResponse("invalid_request", "參考圖片資源 ID 數量必須與參考圖片數量一致。")
     };
   }
 
@@ -215,7 +215,7 @@ function parseReferenceAssetIds(input: Record<string, unknown>, referenceImageCo
     if (!referenceAssetId) {
       return {
         ok: false,
-        error: errorResponse("invalid_request", "参考图像资源 ID 格式不受支持。")
+        error: errorResponse("invalid_request", "參考圖片資源 ID 格式不受支援。")
       };
     }
 
@@ -497,7 +497,7 @@ function parseBaseImagePayload(input: unknown): ParseResult<ImageProviderInput> 
   if (!isRecord(input)) {
     return {
       ok: false,
-      error: errorResponse("invalid_request", "请求内容必须是 JSON 对象。")
+      error: errorResponse("invalid_request", "請求內容必須是 JSON 物件。")
     };
   }
 
@@ -505,7 +505,7 @@ function parseBaseImagePayload(input: unknown): ParseResult<ImageProviderInput> 
   if (typeof prompt !== "string" || prompt.trim().length === 0) {
     return {
       ok: false,
-      error: errorResponse("invalid_prompt", "请输入有效的提示词。")
+      error: errorResponse("invalid_prompt", "請輸入有效的提示詞。")
     };
   }
 
@@ -610,7 +610,7 @@ function parseStylePreset(input: Record<string, unknown>): ParseResult<StylePres
   if (!STYLE_PRESETS.some((preset) => preset.id === presetId)) {
     return {
       ok: false,
-      error: errorResponse("invalid_prompt", "不支持的风格预设。")
+      error: errorResponse("invalid_prompt", "不支援的風格預設。")
     };
   }
 
@@ -624,7 +624,7 @@ function parseSize(value: unknown): ParseResult<ImageSize> {
   if (!isRecord(value)) {
     return {
       ok: false,
-      error: errorResponse("invalid_size", "请提供有效的图像尺寸。")
+      error: errorResponse("invalid_size", "請提供有效的圖片尺寸。")
     };
   }
 
@@ -654,7 +654,7 @@ function parseQuality(value: unknown): ParseResult<ImageQuality> {
 
   return {
     ok: false,
-    error: errorResponse("invalid_request", "不支持的图像质量设置。")
+    error: errorResponse("invalid_request", "不支援的圖片品質設定。")
   };
 }
 
@@ -675,7 +675,7 @@ function parseOutputFormat(value: unknown): ParseResult<OutputFormat> {
 
   return {
     ok: false,
-    error: errorResponse("invalid_request", "不支持的输出格式。")
+    error: errorResponse("invalid_request", "不支援的輸出格式。")
   };
 }
 
@@ -696,7 +696,7 @@ function parseCount(value: unknown): ParseResult<GenerationCount> {
 
   return {
     ok: false,
-    error: errorResponse("invalid_request", "生成数量只能是 1、2、4、8 或 16。")
+    error: errorResponse("invalid_request", "生成數量只能是 1、2、4、8 或 16。")
   };
 }
 
