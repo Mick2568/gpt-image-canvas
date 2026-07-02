@@ -1,10 +1,10 @@
 .app-shell {
-  background: #24211d;
+  background: #eef6f1;
 }
 
 .canvas-loading-state {
   background:
-    linear-gradient(90deg, rgb(255 253 248 / 0.88), rgb(247 240 229 / 0.72)),
+    linear-gradient(90deg, rgb(255 255 255 / 0.9), rgb(241 248 244 / 0.76)),
     var(--paper);
 }
 
@@ -30,18 +30,18 @@
 }
 
 .app-root[data-canvas-theme="dark"] [data-testid="canvas-shell"] .canvas-snap-indicator .tl-snap-indicator {
-  stroke: #5eead4;
-  filter: drop-shadow(0 0 3px rgb(15 17 20 / 0.82));
+  stroke: #9be7cf;
+  filter: drop-shadow(0 0 3px rgb(15 24 20 / 0.82));
 }
 
 .app-root[data-canvas-theme="dark"] [data-testid="canvas-shell"] .canvas-snap-indicator .tl-snap-point {
-  stroke: #f5a46f;
+  stroke: #d7efd6;
 }
 
 .ai-panel {
   border-left-color: var(--line);
   background: var(--paper-panel);
-  box-shadow: -20px 0 70px rgb(51 36 24 / 0.16);
+  box-shadow: -20px 0 70px rgb(40 86 68 / 0.12);
 }
 
 .ai-panel > div:first-child,
@@ -59,7 +59,7 @@
 
 .ai-panel-body {
   background:
-    linear-gradient(180deg, rgb(247 240 229 / 0.55), rgb(255 253 248 / 0) 24%),
+    linear-gradient(180deg, rgb(224 243 236 / 0.55), rgb(255 255 255 / 0) 24%),
     var(--paper-panel);
 }
 
@@ -74,7 +74,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--panel-tab-gap);
   border-bottom: 1px solid var(--line);
-  background: #f7efe4;
+  background: #eef7f2;
   padding: var(--panel-tab-pad-y) var(--panel-tab-pad-x);
 }
 
@@ -88,8 +88,8 @@
   width: calc((100% - (var(--panel-tab-pad-x) * 2) - var(--panel-tab-gap)) / 2);
   border: 1px solid var(--accent-dark);
   border-radius: 7px;
-  background: #fffdf8;
-  box-shadow: 0 8px 18px rgb(126 50 26 / 0.12);
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgb(47 111 95 / 0.14);
   pointer-events: none;
   transform: translateX(0);
   transition: transform var(--motion-duration-panel) var(--motion-ease-standard);
@@ -125,8 +125,8 @@
 }
 
 .panel-tab-switcher__button:hover {
-  border-color: #ead1bc;
-  background: #fff8ee;
+  border-color: #b7d0c4;
+  background: #f8fcf9;
   color: var(--ink);
 }
 
