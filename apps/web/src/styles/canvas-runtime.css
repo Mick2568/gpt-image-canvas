@@ -77,7 +77,7 @@
   flex: none;
   border-radius: 0.55rem;
   background: rgb(255 253 248 / 0.72);
-  box-shadow: 0 10px 22px rgb(126 50 26 / 0.18);
+  box-shadow: 0 10px 22px rgb(47 111 95 / 0.16);
 }
 
 .brand-mark::before {
@@ -243,7 +243,7 @@
   }
 
   .mobile-ai-trigger:hover {
-    background: linear-gradient(135deg, var(--brand-blue-dark) 0%, #1e40af 78%, var(--brand-cyan) 100%);
+    background: linear-gradient(135deg, var(--brand-blue-dark) 0%, #285f51 78%, var(--brand-cyan) 100%);
     box-shadow: 0 18px 44px rgb(15 23 42 / 0.32);
     transform: translateY(-1px);
   }
